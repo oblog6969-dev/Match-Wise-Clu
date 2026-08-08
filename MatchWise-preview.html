@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1220">
+<title>MatchWise — Couple Compatibility</title>
+<meta name="description" content="A private, research-informed couple compatibility assessment. Your data never leaves your device.">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%9E%3C/text%3E%3C/svg%3E">
+<style>
+/* MatchWise — premium minimal UI */
+:root{
+  --bg:#f4f4f7; --card:#ffffff; --text:#16181f; --muted:#6b7080;
+  --accent:#e0446a; --accent2:#7c5cff; --line:#e7e7ee;
+  --ok:#1fa971; --warn:#e09a1f; --bad:#d84343;
+  --radius:20px; --shadow:0 8px 30px rgba(20,20,40,.08);
+  font-size:17px;
+}
+[data-theme="dark"]{
+  --bg:#0f1220; --card:#191d30; --text:#eef0f8; --muted:#9aa0b5;
+  --line:#2a2f47; --shadow:0 8px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Arabic",sans-serif;
+  min-height:100vh; transition:background .3s,color .3s;
+}
+#app{max-width:640px;margin:0 auto;padding:0 16px 48px}
+
+/* Topbar */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 4px}
+.brand{font-weight:700;font-size:1.2rem;display:flex;gap:8px;align-items:center;cursor:pointer}
+.logo{color:var(--accent);font-size:1.4rem}
+.topbar-actions{display:flex;gap:8px}
+.chip{
+  border:1px solid var(--line);background:var(--card);color:var(--text);
+  border-radius:99px;padding:8px 14px;font-size:.9rem;cursor:pointer;transition:.2s;
+}
+.chip:active{transform:scale(.94)}
+
+/* Screens */
+.screen{display:none;animation:fadeUp .35s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* Cards */
+.card{
+  background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:28px 22px;margin-bottom:18px;
+}
+.card.center{text-align:center}
+.hero h1{font-size:1.9rem;line-height:1.2;margin-bottom:12px}
+.hero p{margin-bottom:24px}
+.big-emoji{font-size:3rem;margin-bottom:8px}
+h2{font-size:1.4rem;margin-bottom:10px}
+h3{font-size:1.05rem;margin-bottom:10px}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.error{color:var(--bad);margin-top:10px;min-height:1em}
+.row{display:flex;gap:10px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+.privacy{text-align:center;margin-top:8px}
+
+/* Buttons */
+.btn{
+  border:none;border-radius:14px;padding:13px 20px;font-size:1rem;font-weight:600;
+  cursor:pointer;transition:.18s;display:inline-block;
+}
+.btn.big{width:100%;padding:16px;margin-top:10px;font-size:1.05rem}
+.btn.primary{background:linear-gradient(120deg,var(--accent),var(--accent2));color:#fff}
+.btn.primary:active{transform:scale(.97);filter:brightness(1.1)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);margin-top:10px}
+
+/* Inputs */
+input[type=text],textarea,select{
+  width:100%;border:1px solid var(--line);border-radius:14px;background:var(--bg);
+  color:var(--text);padding:14px;font-size:1rem;margin:10px 0;font-family:inherit;
+}
+textarea{resize:none;font-size:.8rem;word-break:break-all}
+select{appearance:none}
+label{font-weight:600;font-size:.9rem}
+.compare-slot{margin-bottom:8px}
+.paste-box{margin:14px 0}
+.paste-box summary{cursor:pointer;color:var(--accent2);font-weight:600}
+
+/* Progress */
+.progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 2px 16px}
+.progress-bar{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+#progressFill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s ease}
+
+/* Question */
+.question-card{min-height:300px}
+.q-cat{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:10px}
+.q-text{font-size:1.25rem;line-height:1.4;margin-bottom:22px;font-weight:600}
+.likert{display:flex;flex-direction:column;gap:8px}
+.likert-scale{display:flex;justify-content:space-between;gap:6px}
+.likert-dot{
+  flex:1;aspect-ratio:1;max-width:52px;border-radius:50%;border:2px solid var(--line);
+  background:var(--card);cursor:pointer;font-weight:700;color:var(--muted);transition:.15s;
+}
+.likert-dot:hover{border-color:var(--accent)}
+.likert-dot.sel{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.08)}
+.likert-labels{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:6px}
+.opt{
+  display:block;width:100%;text-align:start;border:1.5px solid var(--line);background:var(--card);
+  color:var(--text);border-radius:14px;padding:14px;margin-bottom:10px;font-size:.98rem;
+  cursor:pointer;transition:.15s;line-height:1.35;font-family:inherit;
+}
+.opt:hover{border-color:var(--accent2)}
+.opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.quiz-nav{display:flex;justify-content:flex-start}
+
+/* Profiles list */
+.profile-list{display:flex;flex-direction:column;gap:8px}
+.profile-item{
+  display:flex;justify-content:space-between;align-items:center;
+  border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:.95rem;
+}
+.profile-item .del{background:none;border:none;color:var(--bad);cursor:pointer;font-size:1rem}
+.profile-empty{color:var(--muted);font-size:.9rem}
+.item-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.mini{
+  border:1px solid var(--line);background:transparent;color:var(--text);
+  border-radius:99px;padding:5px 11px;font-size:.8rem;cursor:pointer;
+  font-family:inherit;transition:.15s;
+}
+.mini:hover{border-color:var(--accent2);color:var(--accent2)}
+.mini:active{transform:scale(.94)}
+
+/* Solo preview */
+.lean-block{margin-bottom:16px}
+.lean-head{display:flex;justify-content:space-between;font-size:.92rem;margin-bottom:6px}
+.lean-ends{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:5px}
+.ans-summary{cursor:pointer;font-weight:600;color:var(--accent2);font-size:.95rem}
+.answer-list{list-style:none;margin-top:14px}
+.answer-list li{
+  display:flex;justify-content:space-between;gap:14px;align-items:baseline;
+  padding:10px 0;border-bottom:1px solid var(--line);font-size:.88rem;line-height:1.4;
+}
+.answer-list li:last-child{border:none}
+.ans-q{flex:1;color:var(--muted)}
+.ans-v{flex:0 0 38%;text-align:end;font-weight:600}
+
+/* Report */
+.report-section{margin-bottom:18px}
+.score-hero{text-align:center;padding:34px 20px}
+.score-num{font-size:3.4rem;font-weight:800;background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.badge{display:inline-block;border-radius:99px;padding:5px 14px;font-size:.82rem;font-weight:700;margin-top:8px}
+.badge.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.badge.warn{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.badge.bad{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.cat-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cat-name{flex:0 0 42%;font-size:.9rem}
+.cat-bar{flex:1;height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.cat-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.cat-val{width:42px;text-align:end;font-size:.85rem;font-weight:700}
+.alert{
+  border-inline-start:4px solid var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--card));
+  border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:.92rem;
+}
+.tip{
+  border-inline-start:4px solid var(--accent2);background:color-mix(in srgb,var(--accent2) 8%,var(--card));
+  border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:.92rem;
+}
+ul.clean{list-style:none}
+ul.clean li{padding:8px 0;border-bottom:1px solid var(--line);font-size:.93rem;line-height:1.45}
+ul.clean li:last-child{border:none}
+.radar-wrap{display:flex;justify-content:center;margin:10px 0}
+.legend{display:flex;gap:18px;justify-content:center;font-size:.85rem;margin-top:6px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:5px}
+.disclaimer{font-size:.8rem;color:var(--muted);line-height:1.5;margin-top:12px}
+
+/* RTL */
+[dir="rtl"] body{font-family:"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif}
+
+/* Print */
+@media print{
+  .topbar,.no-print{display:none!important}
+  body{background:#fff;color:#000}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  #app{max-width:100%}
+  /* always print the full answer appendix, even if collapsed on screen */
+  details .answer-list{display:block!important}
+  details>summary{list-style:none}
+}
+@media(max-width:400px){
+  .hero h1{font-size:1.55rem}
+  .q-text{font-size:1.1rem}
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand" data-action="go-home">
+      <span class="logo">◐</span><span data-i18n="appName">MatchWise</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="chip" id="langBtn" title="Language">EN</button>
+      <button class="chip" id="themeBtn" title="Theme">☾</button>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero card">
+      <h1 data-i18n="heroTitle">How well do you grow together?</h1>
+      <p class="muted" data-i18n="heroSub">A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.</p>
+      <button class="btn primary big" data-action="start" data-i18n="startBtn">Start my assessment</button>
+      <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
+    </div>
+    <div class="card" id="savedProfilesCard">
+      <h3 data-i18n="savedProfiles">Saved profiles</h3>
+      <div id="profileList" class="profile-list"></div>
+    </div>
+    <div class="card">
+      <h3 data-i18n="uploadTitle">Have a profile file?</h3>
+      <p class="muted small" data-i18n="uploadNote">Upload a .json profile you saved earlier to view its report again.</p>
+      <input type="file" id="fileInput" accept=".json,application/json" hidden>
+      <button class="btn ghost big" id="uploadBtn" data-i18n="uploadBtn">Choose file…</button>
+      <p id="fileMsg" class="error small"></p>
+    </div>
+    <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
+  </section>
+
+  <!-- NAME -->
+  <section class="screen" id="screen-name">
+    <div class="card">
+      <h2 data-i18n="whoTitle">Who is taking the assessment?</h2>
+      <input type="text" id="nameInput" maxlength="30" data-i18n-ph="namePh" placeholder="Your first name">
+      <p class="muted small" data-i18n="whoNote">Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.</p>
+      <button class="btn primary big" data-action="begin-quiz" data-i18n="beginBtn">Begin</button>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="screen" id="screen-quiz">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div id="progressFill"></div></div>
+      <span id="progressText" class="muted small"></span>
+    </div>
+    <div class="card question-card" id="questionCard"></div>
+    <div class="quiz-nav">
+      <button class="btn ghost" id="backBtn" data-i18n="backBtn">Back</button>
+    </div>
+  </section>
+
+  <!-- PROFILE DONE -->
+  <section class="screen" id="screen-done">
+    <div class="card center">
+      <div class="big-emoji">✅</div>
+      <h2 data-i18n="doneTitle">Profile created</h2>
+      <p class="muted" data-i18n="doneSub">Share this code with your partner, or paste theirs to see your compatibility report.</p>
+      <textarea id="shareCode" readonly rows="4"></textarea>
+      <div class="row">
+        <button class="btn primary" id="copyBtn" data-i18n="copyBtn">Copy code</button>
+        <button class="btn ghost" id="shareBtn" data-i18n="shareBtn">Share…</button>
+      </div>
+      <button class="btn ghost big" id="downloadBtn" data-i18n="downloadBtn">Download my profile file</button>
+      <button class="btn primary big" data-action="go-compare" data-i18n="toCompareBtn">Compare now</button>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section class="screen" id="screen-compare">
+    <div class="card">
+      <h2 data-i18n="compareTitle">Compare two profiles</h2>
+      <div class="compare-slot">
+        <label data-i18n="personA">Person A</label>
+        <select id="selectA"></select>
+      </div>
+      <div class="compare-slot">
+        <label data-i18n="personB">Person B</label>
+        <select id="selectB"></select>
+      </div>
+      <details class="paste-box">
+        <summary data-i18n="pasteSummary">Paste a partner's share code</summary>
+        <textarea id="importCode" rows="4" data-i18n-ph="pastePh" placeholder="Paste code here"></textarea>
+        <button class="btn ghost" id="importBtn" data-i18n="importBtn">Import profile</button>
+      </details>
+      <button class="btn primary big" id="generateBtn" data-i18n="generateBtn">Generate report</button>
+      <p id="compareError" class="error small"></p>
+    </div>
+  </section>
+
+  <!-- REPORT -->
+  <section class="screen" id="screen-solo">
+    <div id="soloRoot"></div>
+    <div class="row no-print">
+      <button class="btn primary" onclick="window.print()" data-i18n="printBtn">Print / Save PDF</button>
+      <button class="btn ghost" id="soloDownloadBtn" data-i18n="downloadBtn">Download my profile file</button>
+      <button class="btn ghost" data-action="go-home" data-i18n="homeBtn">Home</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-report">
+    <div id="reportRoot"></div>
+    <div class="row no-print">
+      <button class="btn primary" onclick="window.print()" data-i18n="printBtn">Print / Save PDF</button>
+      <button class="btn ghost" data-action="go-home" data-i18n="homeBtn">Home</button>
+    </div>
+  </section>
+
+</div>
+<script>
+// MatchWise question bank — bilingual (EN/AR)
+// Fields:
+//  id, cat, type: "likert" | "mcq"
+//  mt (match type): "sim" = similarity, "comp" = complementarity ok,
+//                   "tol" = tolerance range, "info" = reported only, not scored
+//  w: weight 1–3 | db: deal-breaker flag | rv: reverse-scored
+//  pair: id of consistency-check twin (contradiction lowers confidence)
+//  trait: Big Five tag O/C/E/A/N (+/- direction)
+// mcq options: { v: 1–7 scale value, en, ar }  (or k: key for "info")
+
+const QUESTIONS = [
+
+// ── Personality (Big Five) ──────────────────────────────
+{ id:"p1", cat:"personality", type:"likert", mt:"tol", w:1, trait:"E+",
+  en:"I enjoy meeting new people and being in social gatherings.",
+  ar:"أستمتع بلقاء أشخاص جدد وبالتجمعات الاجتماعية." },
+{ id:"p2", cat:"personality", type:"likert", mt:"tol", w:1, trait:"C+",
+  en:"I keep my plans organized and finish what I start.",
+  ar:"أنظّم خططي وأُنهي ما أبدأه." },
+{ id:"p3", cat:"personality", type:"likert", mt:"tol", w:1, trait:"N+",
+  en:"I often worry about things that might go wrong.",
+  ar:"كثيرًا ما أقلق بشأن أمور قد تسوء." },
+{ id:"p4", cat:"personality", type:"likert", mt:"sim", w:1, trait:"O+",
+  en:"I enjoy discussing new ideas, art, or different ways of living.",
+  ar:"أستمتع بالنقاش حول أفكار جديدة أو فنون أو أساليب حياة مختلفة." },
+{ id:"p5", cat:"personality", type:"likert", mt:"sim", w:1, trait:"A+",
+  en:"People close to me would describe me as warm and cooperative.",
+  ar:"يصفني المقرّبون بأنني ودود ومتعاون." },
+
+// ── Communication ───────────────────────────────────────
+{ id:"c1", cat:"communication", type:"mcq", mt:"sim", w:2,
+  en:"Something your partner did bothered you. What do you usually do?",
+  ar:"أزعجك تصرّف من شريكك. ماذا تفعل عادة؟",
+  opts:[
+    { v:7, en:"Bring it up calmly soon after", ar:"أطرح الموضوع بهدوء بعدها بقليل" },
+    { v:5, en:"Wait for the right moment, then talk", ar:"أنتظر اللحظة المناسبة ثم أتحدث" },
+    { v:3, en:"Drop hints and hope they notice", ar:"أُلمّح وأتمنى أن يلاحظ" },
+    { v:1, en:"Keep it to myself", ar:"أحتفظ به لنفسي" } ] },
+{ id:"c2", cat:"communication", type:"likert", mt:"sim", w:2,
+  en:"I find it easy to talk about my feelings.",
+  ar:"أجد سهولة في التحدث عن مشاعري." },
+{ id:"c3", cat:"communication", type:"mcq", mt:"tol", w:2,
+  en:"After a truly terrible day, I mostly want to:",
+  ar:"بعد يوم سيّئ جدًا، أرغب غالبًا في أن:",
+  opts:[
+    { v:7, en:"Talk it through with my partner", ar:"أتحدث عنه مع شريكي" },
+    { v:4, en:"Be alone first, then talk", ar:"أبقى وحدي أولًا ثم أتحدث" },
+    { v:1, en:"Be left alone until it passes", ar:"أُترك وحدي حتى يمرّ" } ] },
+{ id:"c4", cat:"communication", type:"likert", mt:"sim", w:1, rv:true, pair:"c2",
+  en:"I tend to keep my feelings to myself, even with people close to me.",
+  ar:"أميل إلى الاحتفاظ بمشاعري لنفسي حتى مع المقرّبين مني." },
+
+// ── Conflict & repair ───────────────────────────────────
+{ id:"k1", cat:"conflict", type:"mcq", mt:"tol", w:2,
+  en:"During a heated disagreement, I usually:",
+  ar:"أثناء خلاف محتدم، عادة ما:",
+  opts:[
+    { v:7, en:"Stay calm and keep discussing", ar:"أبقى هادئًا وأواصل النقاش" },
+    { v:5, en:"Ask for a break, then come back to it", ar:"أطلب استراحة ثم أعود للموضوع" },
+    { v:3, en:"Get loud, then cool down quickly", ar:"يرتفع صوتي ثم أهدأ سريعًا" },
+    { v:1, en:"Go silent and withdraw", ar:"أصمت وأنسحب" } ] },
+{ id:"k2", cat:"conflict", type:"mcq", mt:"comp", w:2,
+  en:"After a fight, who usually breaks the silence first?",
+  ar:"بعد الخلاف، من يكسر الصمت أولًا عادة؟",
+  opts:[
+    { v:7, en:"Usually me", ar:"غالبًا أنا" },
+    { v:5, en:"Depends on who was wrong", ar:"حسب من كان مخطئًا" },
+    { v:3, en:"Rarely me", ar:"نادرًا ما أكون أنا" },
+    { v:1, en:"I wait for an apology", ar:"أنتظر اعتذارًا" } ] },
+{ id:"k3", cat:"conflict", type:"likert", mt:"sim", w:2,
+  en:"I can apologize first, even when I think I'm mostly right.",
+  ar:"أستطيع الاعتذار أولًا حتى وإن كنت أظن أنني على حق غالبًا." },
+{ id:"k4", cat:"conflict", type:"likert", mt:"tol", w:1, rv:true, trait:"N+",
+  en:"Small annoyances build up inside me until I explode.",
+  ar:"تتراكم المضايقات الصغيرة في داخلي حتى أنفجر." },
+
+// ── Money ───────────────────────────────────────────────
+{ id:"m1", cat:"money", type:"mcq", mt:"tol", w:2,
+  en:"You receive an unexpected bonus equal to a month's salary. Your first instinct:",
+  ar:"حصلت على مكافأة مفاجئة تعادل راتب شهر. أول ما يخطر لك:",
+  opts:[
+    { v:7, en:"Save or invest almost all of it", ar:"ادخار أو استثمار معظمها" },
+    { v:5, en:"Save most, enjoy a little", ar:"ادخار الأغلب والاستمتاع بجزء بسيط" },
+    { v:3, en:"Half saving, half enjoying", ar:"نصف ادخار ونصف استمتاع" },
+    { v:1, en:"Mostly enjoy it — money is for living", ar:"الاستمتاع بها غالبًا — المال للعيش" } ] },
+{ id:"m2", cat:"money", type:"likert", mt:"tol", w:2,
+  en:"I'm comfortable taking on debt if it improves our quality of life.",
+  ar:"لا مانع لدي من الاقتراض إذا كان سيحسّن جودة حياتنا." },
+{ id:"m3", cat:"money", type:"mcq", mt:"sim", w:3,
+  en:"In marriage, money should be:",
+  ar:"في الزواج، يجب أن يكون المال:",
+  opts:[
+    { v:7, en:"Fully shared — one pot", ar:"مشتركًا بالكامل — حساب واحد" },
+    { v:5, en:"Shared, with personal allowances", ar:"مشتركًا مع مصروف شخصي لكل طرف" },
+    { v:2, en:"Mostly separate accounts", ar:"حسابات منفصلة غالبًا" } ] },
+{ id:"m4", cat:"money", type:"likert", mt:"tol", w:1, rv:true, pair:"m2",
+  en:"I check prices and stick to a budget before most purchases.",
+  ar:"أتحقق من الأسعار وألتزم بميزانية قبل معظم المشتريات." },
+
+// ── Lifestyle ───────────────────────────────────────────
+{ id:"l1", cat:"lifestyle", type:"mcq", mt:"tol", w:2,
+  en:"My ideal weekend looks like:",
+  ar:"عطلتي المثالية تبدو هكذا:",
+  opts:[
+    { v:7, en:"Out — friends, events, new places", ar:"في الخارج — أصدقاء وفعاليات وأماكن جديدة" },
+    { v:4, en:"A mix of going out and home time", ar:"مزيج من الخروج والبقاء في المنزل" },
+    { v:1, en:"Quiet time at home", ar:"وقت هادئ في المنزل" } ] },
+{ id:"l2", cat:"lifestyle", type:"likert", mt:"tol", w:1,
+  en:"I like my daily routine stable and predictable.",
+  ar:"أحب أن يكون روتيني اليومي ثابتًا ومتوقعًا." },
+{ id:"l3", cat:"lifestyle", type:"likert", mt:"sim", w:2,
+  en:"A tidy, organized home matters a lot to me.",
+  ar:"البيت المرتب والمنظم مهم جدًا بالنسبة لي." },
+{ id:"l4", cat:"lifestyle", type:"likert", mt:"tol", w:1,
+  en:"Health and fitness are a central part of my life.",
+  ar:"الصحة واللياقة جزء أساسي من حياتي." },
+
+// ── Family & children ───────────────────────────────────
+{ id:"f1", cat:"family", type:"mcq", mt:"sim", w:3, db:true,
+  en:"Do you want children?",
+  ar:"هل ترغب في إنجاب أطفال؟",
+  opts:[
+    { v:7, en:"Definitely yes", ar:"نعم بالتأكيد" },
+    { v:5, en:"Probably yes", ar:"على الأرجح نعم" },
+    { v:4, en:"Not sure yet", ar:"لست متأكدًا بعد" },
+    { v:2, en:"Probably not", ar:"على الأرجح لا" },
+    { v:1, en:"No", ar:"لا" } ] },
+{ id:"f2", cat:"family", type:"mcq", mt:"sim", w:2,
+  en:"How involved should parents and in-laws be in a couple's life?",
+  ar:"ما مدى مشاركة الأهل وأهل الشريك في حياة الزوجين؟",
+  opts:[
+    { v:7, en:"Very close — family is part of everything", ar:"قريبة جدًا — العائلة جزء من كل شيء" },
+    { v:4, en:"Consulted on big decisions only", ar:"استشارتهم في القرارات الكبيرة فقط" },
+    { v:1, en:"The couple stays fully independent", ar:"يبقى الزوجان مستقلين تمامًا" } ] },
+{ id:"f3", cat:"family", type:"likert", mt:"sim", w:1,
+  en:"Family gatherings and duties are a priority, even when inconvenient.",
+  ar:"تجمّعات العائلة وواجباتها أولوية حتى عندما تكون غير مريحة." },
+
+// ── Values & religion ───────────────────────────────────
+{ id:"v1", cat:"values", type:"mcq", mt:"sim", w:3, db:true,
+  en:"Religion in my daily life is:",
+  ar:"الدين في حياتي اليومية:",
+  opts:[
+    { v:7, en:"Central — I practice regularly", ar:"محوري — أمارس شعائري بانتظام" },
+    { v:5, en:"Important, but I'm flexible", ar:"مهم، لكنني مرن" },
+    { v:3, en:"Cultural / on occasions", ar:"ثقافي / في المناسبات" },
+    { v:1, en:"Not part of my life", ar:"ليس جزءًا من حياتي" } ] },
+{ id:"v2", cat:"values", type:"likert", mt:"sim", w:2,
+  en:"I expect my partner to share my level of religious practice.",
+  ar:"أتوقع من شريكي أن يشاركني مستوى التزامي الديني." },
+{ id:"v3", cat:"values", type:"likert", mt:"sim", w:1,
+  en:"Honesty matters more to me than sparing someone's feelings.",
+  ar:"الصدق أهم عندي من مجاملة مشاعر الآخرين." },
+
+// ── Career & ambition ───────────────────────────────────
+{ id:"r1", cat:"career", type:"likert", mt:"tol", w:2,
+  en:"My career is a core part of who I am.",
+  ar:"عملي جزء أساسي من هويتي." },
+{ id:"r2", cat:"career", type:"mcq", mt:"tol", w:2,
+  en:"A big opportunity at work would demand very long hours for a year. You:",
+  ar:"فرصة عمل كبيرة تتطلب ساعات طويلة جدًا لمدة سنة. أنت:",
+  opts:[
+    { v:7, en:"Take it — sacrifices now pay off later", ar:"أقبلها — التضحية الآن تُثمر لاحقًا" },
+    { v:4, en:"Take it only if we agree together on limits", ar:"أقبلها فقط إذا اتفقنا معًا على حدود" },
+    { v:1, en:"Decline — time together comes first", ar:"أرفضها — وقتنا معًا أولًا" } ] },
+{ id:"r3", cat:"career", type:"likert", mt:"sim", w:2,
+  en:"I would slow down my career for our family when needed.",
+  ar:"سأبطئ مسيرتي المهنية من أجل عائلتنا عند الحاجة." },
+
+// ── Trust & boundaries ──────────────────────────────────
+{ id:"t1", cat:"trust", type:"likert", mt:"sim", w:2,
+  en:"My partner should be able to look at my phone at any time.",
+  ar:"يجب أن يكون بإمكان شريكي الاطلاع على هاتفي في أي وقت." },
+{ id:"t2", cat:"trust", type:"mcq", mt:"sim", w:2,
+  en:"Your partner has a close friend of the opposite sex. You feel:",
+  ar:"لدى شريكك صديق مقرّب من الجنس الآخر. تشعر بأن ذلك:",
+  opts:[
+    { v:7, en:"Fine — trust is the foundation", ar:"طبيعي — الثقة هي الأساس" },
+    { v:5, en:"OK within clear limits", ar:"مقبول ضمن حدود واضحة" },
+    { v:2, en:"Uncomfortable for me", ar:"غير مريح لي" } ] },
+{ id:"t3", cat:"trust", type:"likert", mt:"sim", w:1,
+  en:"Each partner needs some private time and personal space.",
+  ar:"كل طرف يحتاج بعض الوقت الخاص والمساحة الشخصية." },
+{ id:"t4", cat:"trust", type:"likert", mt:"sim", w:1, rv:true, pair:"t1",
+  en:"Some parts of my life should stay private, even from my partner.",
+  ar:"بعض جوانب حياتي يجب أن تبقى خاصة حتى عن شريكي." },
+
+// ── Emotional needs ─────────────────────────────────────
+{ id:"e1", cat:"emotional", type:"mcq", mt:"info", w:0,
+  en:"I feel most loved when my partner:",
+  ar:"أشعر بالحب أكثر عندما يقوم شريكي بـ:",
+  opts:[
+    { k:"words",  en:"Says appreciative, loving words", ar:"قول كلمات محبة وتقدير" },
+    { k:"time",   en:"Spends real quality time with me", ar:"قضاء وقت نوعي حقيقي معي" },
+    { k:"acts",   en:"Does helpful things for me", ar:"القيام بأمور تساعدني" },
+    { k:"touch",  en:"Shows physical affection", ar:"التعبير الجسدي عن الحنان" },
+    { k:"gifts",  en:"Gives thoughtful gifts", ar:"تقديم هدايا مدروسة" } ] },
+{ id:"e2", cat:"emotional", type:"likert", mt:"tol", w:2,
+  en:"I need frequent verbal reassurance in a relationship.",
+  ar:"أحتاج إلى طمأنة لفظية متكررة في العلاقة." },
+{ id:"e3", cat:"emotional", type:"likert", mt:"sim", w:1,
+  en:"When my partner is upset, I usually know how to comfort them.",
+  ar:"عندما يكون شريكي منزعجًا، أعرف عادة كيف أواسيه." },
+{ id:"e4", cat:"emotional", type:"likert", mt:"sim", w:2,
+  en:"It's easy for me to depend on my partner, and for them to depend on me.",
+  ar:"من السهل عليّ أن أعتمد على شريكي وأن يعتمد هو عليّ." },
+
+// ── Adaptability & growth (indirect scenarios) ──────────
+{ id:"g1", cat:"growth", type:"mcq", mt:"sim", w:2, db:true,
+  en:"Your partner gets a great job offer in another city. Your first thought:",
+  ar:"حصل شريكك على عرض عمل ممتاز في مدينة أخرى. أول ما يخطر لك:",
+  opts:[
+    { v:7, en:"An exciting adventure — let's plan it", ar:"مغامرة مشوّقة — لنخطط لها" },
+    { v:5, en:"Open to it, but genuinely worried", ar:"منفتح على الفكرة لكنني قلق فعلًا" },
+    { v:2, en:"They should refuse — stability comes first", ar:"يجب أن يرفض — الاستقرار أولًا" } ] },
+{ id:"g2", cat:"growth", type:"mcq", mt:"sim", w:2,
+  en:"Your partner wants to leave a stable job to start their own business. You:",
+  ar:"يريد شريكك ترك وظيفة مستقرة ليبدأ مشروعه الخاص. أنت:",
+  opts:[
+    { v:7, en:"Support fully and plan the risks together", ar:"أدعمه بالكامل ونخطط للمخاطر معًا" },
+    { v:5, en:"Support it if the plan convinces me", ar:"أدعمه إذا أقنعتني الخطة" },
+    { v:3, en:"Worry quietly but say nothing", ar:"أقلق بصمت دون أن أتكلم" },
+    { v:1, en:"Oppose it — stability matters more", ar:"أعارض — الاستقرار أهم" } ] },
+{ id:"g3", cat:"growth", type:"mcq", mt:"sim", w:2,
+  en:"Your partner suggests a food, hobby, or trip you've never tried. You usually:",
+  ar:"يقترح شريكك طعامًا أو هواية أو رحلة لم تجرّبها من قبل. عادة أنت:",
+  opts:[
+    { v:7, en:"Get excited — I love trying new things", ar:"أتحمّس — أحب تجربة الجديد" },
+    { v:5, en:"Try it sometimes, cautiously", ar:"أجرّب أحيانًا وبحذر" },
+    { v:2, en:"Prefer what I already know", ar:"أفضّل ما أعرفه مسبقًا" } ] },
+{ id:"g4", cat:"growth", type:"likert", mt:"tol", w:2, trait:"O+",
+  en:"When life changes suddenly, I adapt quickly.",
+  ar:"عندما تتغير الحياة فجأة، أتكيّف بسرعة." },
+{ id:"g5", cat:"growth", type:"likert", mt:"sim", w:2,
+  en:"I regularly notice and thank my partner for the small things.",
+  ar:"ألاحظ بانتظام الأشياء الصغيرة التي يفعلها شريكي وأشكره عليها." },
+{ id:"g6", cat:"growth", type:"likert", mt:"tol", w:1, rv:true, pair:"g4",
+  en:"Unexpected changes to my plans stress me a lot.",
+  ar:"التغييرات المفاجئة في خططي تسبب لي توترًا كبيرًا." },
+
+// ── Future planning ─────────────────────────────────────
+{ id:"u1", cat:"future", type:"mcq", mt:"sim", w:2,
+  en:"Ten years from now, I picture us:",
+  ar:"بعد عشر سنوات، أتخيلنا:",
+  opts:[
+    { v:2, en:"Settled in one place with deep roots", ar:"مستقرين في مكان واحد بجذور راسخة" },
+    { v:5, en:"A balance of stability and new experiences", ar:"في توازن بين الاستقرار والتجارب الجديدة" },
+    { v:7, en:"Flexible — exploring wherever life leads", ar:"مرنين — نستكشف حيث تأخذنا الحياة" } ] },
+{ id:"u2", cat:"future", type:"likert", mt:"tol", w:1,
+  en:"I have clear goals for the next five years.",
+  ar:"لدي أهداف واضحة للسنوات الخمس القادمة." },
+{ id:"u3", cat:"future", type:"likert", mt:"sim", w:2,
+  en:"Big decisions — like major purchases — should always be made together.",
+  ar:"القرارات الكبيرة — كالمشتريات الضخمة — يجب أن تُتخذ دائمًا معًا." },
+];
+
+
+// UI strings — English / Arabic
+const STR = {
+  appName:      { en: "MatchWise", ar: "ماتش وايز" },
+  heroTitle:    { en: "How well do you grow together?", ar: "إلى أي مدى تنموان معًا؟" },
+  heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — كل شيء يبقى على هاتفك." },
+  startBtn:     { en: "Start my assessment", ar: "ابدأ تقييمي" },
+  compareBtn:   { en: "Compare two profiles", ar: "قارن ملفين" },
+  savedProfiles:{ en: "Saved profiles", ar: "الملفات المحفوظة" },
+  noProfiles:   { en: "No profiles yet.", ar: "لا توجد ملفات بعد." },
+  privacyNote:  { en: "🔒 100% private — answers never leave your device.", ar: "🔒 خصوصية كاملة — إجاباتك لا تغادر جهازك أبدًا." },
+  whoTitle:     { en: "Who is taking the assessment?", ar: "من سيقوم بالتقييم؟" },
+  namePh:       { en: "Your first name", ar: "اسمك الأول" },
+  whoNote:      { en: "Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.", ar: "أجب بصدق لا بمثالية. لا توجد إجابات صحيحة — الإجابات المتناقضة تقلل موثوقية نتيجتك." },
+  beginBtn:     { en: "Begin", ar: "ابدأ" },
+  backBtn:      { en: "Back", ar: "رجوع" },
+  qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },
+  doneTitle:    { en: "Profile created", ar: "تم إنشاء الملف" },
+  doneSub:      { en: "Share this code with your partner, or paste theirs to see your compatibility report.", ar: "شارك هذا الرمز مع شريكك، أو الصق رمزه لرؤية تقرير التوافق." },
+  copyBtn:      { en: "Copy code", ar: "نسخ الرمز" },
+  copied:       { en: "Copied!", ar: "تم النسخ!" },
+  shareBtn:     { en: "Share…", ar: "مشاركة…" },
+  toCompareBtn: { en: "Compare now", ar: "قارن الآن" },
+  compareTitle: { en: "Compare two profiles", ar: "قارن ملفين" },
+  personA:      { en: "Person A", ar: "الشخص أ" },
+  personB:      { en: "Person B", ar: "الشخص ب" },
+  pasteSummary: { en: "Paste a partner's share code", ar: "الصق رمز مشاركة الشريك" },
+  pastePh:      { en: "Paste code here", ar: "الصق الرمز هنا" },
+  importBtn:    { en: "Import profile", ar: "استيراد الملف" },
+  importOk:     { en: "Profile imported.", ar: "تم استيراد الملف." },
+  importBad:    { en: "Invalid code. Check and try again.", ar: "رمز غير صالح. تحقق وحاول مجددًا." },
+  needTwo:      { en: "Select two different profiles.", ar: "اختر ملفين مختلفين." },
+  generateBtn:  { en: "Generate report", ar: "إنشاء التقرير" },
+  printBtn:     { en: "Print / Save PDF", ar: "طباعة / حفظ PDF" },
+  homeBtn:      { en: "Home", ar: "الرئيسية" },
+  likertLow:    { en: "Strongly disagree", ar: "أرفض بشدة" },
+  likertHigh:   { en: "Strongly agree", ar: "أوافق بشدة" },
+  select:       { en: "— select —", ar: "— اختر —" },
+  // Report
+  rTitle:       { en: "Compatibility Report", ar: "تقرير التوافق" },
+  rIndex:       { en: "Compatibility Index", ar: "مؤشر التوافق" },
+  rConfidence:  { en: "Confidence", ar: "الموثوقية" },
+  rSummary:     { en: "Executive Summary", ar: "الملخص التنفيذي" },
+  rCats:        { en: "Category Scores", ar: "نتائج المحاور" },
+  rRadar:       { en: "Compatibility Radar", ar: "رادار التوافق" },
+  rStrengths:   { en: "Strengths", ar: "نقاط القوة" },
+  rChallenges:  { en: "Potential Challenges", ar: "تحديات محتملة" },
+  rDealbreakers:{ en: "Important Alerts", ar: "تنبيهات مهمة" },
+  rTalk:        { en: "Topics to Discuss Together", ar: "مواضيع للنقاش معًا" },
+  rGrowth:      { en: "Adaptability & Growth", ar: "التكيّف والنمو" },
+  rDisclaimer:  { en: "This report is a conversation tool, not a scientific verdict. No assessment can capture a full relationship. Use the discussion topics as a starting point — the conversation matters more than the score.", ar: "هذا التقرير أداة للحوار وليس حكمًا علميًا. لا يمكن لأي تقييم أن يحيط بعلاقة كاملة. استخدما مواضيع النقاش كنقطة بداية — فالحوار أهم من الرقم." },
+  // Files
+  downloadBtn:  { en: "Download my profile file", ar: "تنزيل ملفي" },
+  uploadTitle:  { en: "Have a profile file?", ar: "لديك ملف محفوظ؟" },
+  uploadNote:   { en: "Upload a .json profile you saved earlier to view its report again.", ar: "ارفع ملف .json حفظته سابقًا لعرض تقريره مجددًا." },
+  uploadBtn:    { en: "Choose file…", ar: "اختر ملفًا…" },
+  fileSaved:    { en: "File downloaded. Keep it safe — you can upload it any time to see this report again.", ar: "تم تنزيل الملف. احتفظ به — يمكنك رفعه في أي وقت لرؤية هذا التقرير مجددًا." },
+  fileBad:      { en: "That file isn't a valid MatchWise profile.", ar: "هذا الملف ليس ملف ماتش وايز صالحًا." },
+  // Solo profile preview
+  previewBtn:   { en: "Preview", ar: "معاينة" },
+  sTitle:       { en: "Profile Preview", ar: "معاينة الملف" },
+  sSub:         { en: "Your own answers, on their own. Nothing here is a compatibility score — that needs two people.", ar: "إجاباتك أنت وحدك. لا شيء هنا يمثل درجة توافق — فالتوافق يحتاج طرفين." },
+  sLean:        { en: "Where You Lean", ar: "أين تميل" },
+  sLeanNote:    { en: "Higher means more toward the second label. Neither end is better.", ar: "الأعلى يعني ميلًا أكبر نحو الوصف الثاني. لا طرف أفضل من الآخر." },
+  sTraits:      { en: "Personality Estimate", ar: "تقدير الشخصية" },
+  sLove:        { en: "You feel most loved through", ar: "تشعر بالحب أكثر عبر" },
+  sAnswers:     { en: "Review all your answers", ar: "مراجعة كل إجاباتك" },
+  sFlags:       { en: "Answers that disagreed with each other", ar: "إجابات تناقض بعضها" },
+  sFlagNote:    { en: "These were asked twice in different words and got different answers. That lowers your confidence score. Worth a second look.", ar: "طُرحت هذه مرتين بصيغ مختلفة وجاءت الإجابات مختلفة. هذا يخفض درجة الموثوقية. تستحق نظرة ثانية." },
+  sComplete:    { en: "Answered {a} of {b} questions", ar: "تمت الإجابة على {a} من {b} سؤالًا" },
+  sRetake:      { en: "Retake assessment", ar: "إعادة التقييم" },
+  levelHigh:    { en: "Strong foundation", ar: "أساس قوي" },
+  levelMid:     { en: "Promising — needs conversation", ar: "واعد — يحتاج حوارًا" },
+  levelLow:     { en: "Significant differences to discuss", ar: "اختلافات جوهرية تستحق النقاش" },
+};
+
+const CATS = {
+  personality: { en: "Personality", ar: "الشخصية" },
+  communication: { en: "Communication", ar: "التواصل" },
+  conflict: { en: "Conflict & Repair", ar: "الخلاف والمصالحة" },
+  money: { en: "Money", ar: "المال" },
+  lifestyle: { en: "Lifestyle", ar: "نمط الحياة" },
+  family: { en: "Family & Children", ar: "العائلة والأطفال" },
+  values: { en: "Values & Religion", ar: "القيم والدين" },
+  career: { en: "Career & Ambition", ar: "العمل والطموح" },
+  trust: { en: "Trust & Boundaries", ar: "الثقة والحدود" },
+  emotional: { en: "Emotional Needs", ar: "الاحتياجات العاطفية" },
+  growth: { en: "Adaptability & Growth", ar: "التكيّف والنمو" },
+  future: { en: "Future Planning", ar: "تخطيط المستقبل" },
+};
+
+function t(key, lang, vars) {
+  let s = (STR[key] && STR[key][lang]) || key;
+  if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]);
+  return s;
+}
+
+
+// MatchWise scoring & compatibility engine
+
+const byId = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
+
+// Normalize a raw answer to 1–7 (reverse-scored handled here)
+function norm(q, v) {
+  if (v == null || typeof v !== "number") return null;
+  return q.rv ? 8 - v : v;
+}
+
+// Pairwise score for one question: 0..1 (null = not scored)
+function questionScore(q, a, b) {
+  if (q.mt === "info") return null;
+  const va = norm(q, a), vb = norm(q, b);
+  if (va == null || vb == null) return null;
+  const d = Math.abs(va - vb); // 0..6
+  if (q.mt === "sim")  return 1 - d / 6;
+  if (q.mt === "comp") return 1 - Math.abs(d - 2) / 5; // moderate difference is fine
+  if (q.mt === "tol")  return d <= 2 ? 1 : 1 - (d - 2) / 4; // free band, then penalty
+  return null;
+}
+
+// Confidence per profile: base 90, −10 per contradicted consistency pair
+function profileConfidence(answers) {
+  let conf = 90;
+  for (const q of QUESTIONS) {
+    if (!q.pair) continue;
+    const twin = byId[q.pair];
+    const v1 = norm(q, answers[q.id]);
+    const v2 = norm(twin, answers[twin.id]);
+    if (v1 != null && v2 != null && Math.abs(v1 - v2) >= 3) conf -= 10;
+  }
+  const answered = QUESTIONS.filter(q => answers[q.id] != null).length;
+  conf -= Math.round((1 - answered / QUESTIONS.length) * 30); // penalty for skips
+  return Math.max(35, conf);
+}
+
+// Big Five estimate (0–100 per trait) from tagged questions
+function bigFive(answers) {
+  const acc = {}; // trait -> [sum, n]
+  for (const q of QUESTIONS) {
+    if (!q.trait) continue;
+    const v = answers[q.id];
+    if (v == null) continue;
+    const key = q.trait[0];
+    const val = q.trait[1] === "-" ? 8 - v : v;
+    (acc[key] ||= [0, 0]); acc[key][0] += val; acc[key][1]++;
+  }
+  const out = {};
+  for (const k in acc) out[k] = Math.round(((acc[k][0] / acc[k][1]) - 1) / 6 * 100);
+  return out; // O C E A N (subset that has data)
+}
+
+function loveLanguage(answers) {
+  return answers["e1"] || null; // categorical key
+}
+
+// Single-profile summary — no partner needed.
+// Returns the person's own leanings, traits and any self-contradictions.
+function soloSummary(p) {
+  const cats = {};
+  const answers = [];   // every question with the option the person chose
+
+  for (const q of QUESTIONS) {
+    const raw = p.answers[q.id];
+    // human-readable chosen answer
+    let chosen = null;
+    if (raw != null) {
+      if (q.type === "likert") chosen = { likert: raw };
+      else {
+        const o = q.opts.find(o => ("v" in o ? o.v : o.k) === raw);
+        if (o) chosen = { opt: o };
+      }
+    }
+    answers.push({ q, chosen });
+
+    if (q.mt === "info" || !q.w) continue;
+    const v = norm(q, raw);
+    if (v == null) continue;
+    (cats[q.cat] ||= { sum: 0, w: 0 });
+    cats[q.cat].sum += ((v - 1) / 6) * q.w;
+    cats[q.cat].w += q.w;
+  }
+
+  const catLean = {};
+  for (const c in cats) catLean[c] = Math.round(cats[c].sum / cats[c].w * 100);
+
+  // consistency pairs that disagreed
+  const flags = [];
+  for (const q of QUESTIONS) {
+    if (!q.pair) continue;
+    const twin = byId[q.pair];
+    const a = norm(q, p.answers[q.id]), b = norm(twin, p.answers[twin.id]);
+    if (a != null && b != null && Math.abs(a - b) >= 3) flags.push([q, twin]);
+  }
+
+  return {
+    catLean, answers, flags,
+    bigFive: bigFive(p.answers),
+    love: loveLanguage(p.answers),
+    confidence: profileConfidence(p.answers),
+    answered: QUESTIONS.filter(q => p.answers[q.id] != null).length,
+    total: QUESTIONS.length,
+  };
+}
+
+// Full comparison of two profiles { name, answers }
+function compare(pa, pb) {
+  const cats = {};     // cat -> {sum, w}
+  const perQ = [];     // detailed rows
+  const alerts = [];   // deal-breaker mismatches
+
+  for (const q of QUESTIONS) {
+    const s = questionScore(q, pa.answers[q.id], pb.answers[q.id]);
+    if (s == null) continue;
+    (cats[q.cat] ||= { sum: 0, w: 0 });
+    cats[q.cat].sum += s * q.w;
+    cats[q.cat].w += q.w;
+    perQ.push({ q, s });
+    if (q.db) {
+      const d = Math.abs(norm(q, pa.answers[q.id]) - norm(q, pb.answers[q.id]));
+      if (d >= 3) alerts.push(q);
+    }
+  }
+
+  const catScores = {};
+  let total = 0, totalW = 0;
+  for (const c in cats) {
+    catScores[c] = Math.round(cats[c].sum / cats[c].w * 100);
+    total += cats[c].sum; totalW += cats[c].w;
+  }
+  let index = Math.round(total / totalW * 100);
+  // Deal-breaker mismatch caps the headline index
+  if (alerts.length) index = Math.min(index, 65 - (alerts.length - 1) * 10);
+
+  const confidence = Math.min(profileConfidence(pa.answers), profileConfidence(pb.answers));
+
+  // Topics to discuss: lowest-scoring weighted questions (excluding info)
+  const topics = perQ
+    .filter(r => r.s < 0.55 && r.q.w >= 2)
+    .sort((x, y) => x.s - y.s)
+    .slice(0, 6)
+    .map(r => r.q);
+
+  const sorted = Object.entries(catScores).sort((a, b) => b[1] - a[1]);
+  return {
+    index, confidence, catScores, alerts, topics,
+    strengths: sorted.filter(([, v]) => v >= 75).slice(0, 4).map(([c]) => c),
+    challenges: sorted.filter(([, v]) => v < 60).map(([c]) => c),
+    bigFive: { a: bigFive(pa.answers), b: bigFive(pb.answers) },
+    love: { a: loveLanguage(pa.answers), b: loveLanguage(pb.answers) },
+  };
+}
+
+
+// MatchWise report renderer (pure SVG charts, printable)
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// SVG radar chart of category scores
+function radar(catScores, lang) {
+  const keys = Object.keys(catScores);
+  const n = keys.length, cx = 160, cy = 150, R = 105;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  let grid = "";
+  for (let g = 1; g <= 4; g++) {
+    const pts = keys.map((_, i) => pt(i, R * g / 4).join(",")).join(" ");
+    grid += `<polygon points="${pts}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  }
+  const axes = keys.map((_, i) => {
+    const [x, y] = pt(i, R);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+  }).join("");
+  const poly = keys.map((k, i) => pt(i, R * catScores[k] / 100).join(",")).join(" ");
+  const labels = keys.map((k, i) => {
+    const [x, y] = pt(i, R + 22);
+    const name = CATS[k] ? CATS[k][lang] : k;
+    return `<text x="${x}" y="${y}" font-size="9" text-anchor="middle" fill="var(--muted)">${esc(name)}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 320 300" width="100%" style="max-width:380px">
+    ${grid}${axes}
+    <polygon points="${poly}" fill="var(--accent2)" fill-opacity=".25" stroke="var(--accent2)" stroke-width="2"/>
+    ${labels}</svg>`;
+}
+
+function bars(catScores, lang) {
+  return Object.entries(catScores).sort((a, b) => b[1] - a[1]).map(([c, v]) => `
+    <div class="cat-row">
+      <span class="cat-name">${esc(CATS[c] ? CATS[c][lang] : c)}</span>
+      <span class="cat-bar"><i style="width:${v}%"></i></span>
+      <span class="cat-val">${v}%</span>
+    </div>`).join("");
+}
+
+const LOVE = {
+  words: { en: "Words of affirmation", ar: "كلمات التقدير" },
+  time:  { en: "Quality time", ar: "الوقت النوعي" },
+  acts:  { en: "Acts of service", ar: "أفعال الخدمة" },
+  touch: { en: "Physical touch", ar: "اللمسة الجسدية" },
+  gifts: { en: "Gifts", ar: "الهدايا" },
+};
+const B5 = {
+  O: { en: "Openness", ar: "الانفتاح" }, C: { en: "Conscientiousness", ar: "الانضباط" },
+  E: { en: "Extraversion", ar: "الانبساط" }, A: { en: "Agreeableness", ar: "الوفاق" },
+  N: { en: "Emotional sensitivity", ar: "الحساسية الانفعالية" },
+};
+
+// Poles for the "where you lean" bars — neither end is better than the other
+const POLES = {
+  personality:   { lo:{en:"Reserved",ar:"متحفّظ"},        hi:{en:"Outgoing",ar:"منفتح"} },
+  communication: { lo:{en:"Keeps it in",ar:"يكتم"},        hi:{en:"Talks it out",ar:"يتحدث"} },
+  conflict:      { lo:{en:"Withdraws",ar:"ينسحب"},         hi:{en:"Engages calmly",ar:"يناقش بهدوء"} },
+  money:         { lo:{en:"Spender",ar:"منفق"},            hi:{en:"Saver",ar:"مدّخر"} },
+  lifestyle:     { lo:{en:"Homebody",ar:"بيتوتي"},         hi:{en:"Out and about",ar:"كثير الخروج"} },
+  family:        { lo:{en:"Independent",ar:"مستقل"},       hi:{en:"Family-centred",ar:"متمحور حول العائلة"} },
+  values:        { lo:{en:"Secular",ar:"غير متديّن"},      hi:{en:"Practising",ar:"ملتزم"} },
+  career:        { lo:{en:"Life first",ar:"الحياة أولًا"}, hi:{en:"Career-driven",ar:"مدفوع بالعمل"} },
+  trust:         { lo:{en:"Values privacy",ar:"يقدّر الخصوصية"}, hi:{en:"Fully open",ar:"منفتح تمامًا"} },
+  emotional:     { lo:{en:"Self-contained",ar:"مكتفٍ ذاتيًا"}, hi:{en:"Needs closeness",ar:"يحتاج القرب"} },
+  growth:        { lo:{en:"Prefers stability",ar:"يفضّل الاستقرار"}, hi:{en:"Embraces change",ar:"يتقبّل التغيير"} },
+  future:        { lo:{en:"Roots down",ar:"جذور ثابتة"},   hi:{en:"Open road",ar:"طريق مفتوح"} },
+};
+
+function renderSolo(s, p, lang) {
+  const L = k => t(k, lang);
+
+  const leanRows = Object.entries(s.catLean).map(([c, v]) => {
+    const pole = POLES[c];
+    const ends = pole
+      ? `<div class="lean-ends"><span>${pole.lo[lang]}</span><span>${pole.hi[lang]}</span></div>` : "";
+    return `<div class="lean-block">
+      <div class="lean-head"><span>${esc(CATS[c] ? CATS[c][lang] : c)}</span><b>${v}%</b></div>
+      <span class="cat-bar"><i style="width:${v}%"></i></span>${ends}
+    </div>`;
+  }).join("");
+
+  const b5rows = Object.keys(B5).filter(k => k in s.bigFive).map(k => `
+    <div class="cat-row"><span class="cat-name">${B5[k][lang]}</span>
+      <span class="cat-bar"><i style="width:${s.bigFive[k]}%"></i></span>
+      <span class="cat-val">${s.bigFive[k]}%</span>
+    </div>`).join("");
+
+  const loveRow = s.love
+    ? `<p style="margin-top:12px">${L("sLove")}: <b>${LOVE[s.love][lang]}</b></p>` : "";
+
+  const flags = s.flags.length ? `
+    <div class="card report-section"><h3>🔍 ${L("sFlags")}</h3>
+      <p class="muted small" style="margin-bottom:10px">${L("sFlagNote")}</p>
+      ${s.flags.map(([a, b]) => `<div class="tip">${esc(a[lang])}<br><span class="muted">↕</span><br>${esc(b[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const answerList = s.answers.map(({ q, chosen }) => {
+    let val = `<span class="muted">—</span>`;
+    if (chosen?.opt) val = esc(chosen.opt[lang]);
+    else if (chosen?.likert) val = `<b>${chosen.likert}</b> / 7`;
+    return `<li><span class="ans-q">${esc(q[lang])}</span><span class="ans-v">${val}</span></li>`;
+  }).join("");
+
+  return `
+  <div class="card score-hero report-section">
+    <h2>${L("sTitle")}</h2>
+    <p class="muted small">👤 ${esc(p.name)} · ${new Date(p.date).toLocaleDateString(lang === "ar" ? "ar" : "en")}</p>
+    <div class="score-num">${s.confidence}%</div>
+    <div class="badge ${s.confidence >= 75 ? "ok" : s.confidence >= 55 ? "warn" : "bad"}">${L("rConfidence")}</div>
+    <p class="muted small" style="margin-top:10px">${t("sComplete", lang, { a: s.answered, b: s.total })}</p>
+    <p class="disclaimer">${L("sSub")}</p>
+  </div>
+  <div class="card report-section"><h3>🧭 ${L("sLean")}</h3>
+    <p class="muted small" style="margin-bottom:14px">${L("sLeanNote")}</p>
+    ${leanRows}
+  </div>
+  <div class="card report-section"><h3>🧬 ${L("sTraits")}</h3>${b5rows}${loveRow}</div>
+  ${flags}
+  <div class="card report-section">
+    <details><summary class="ans-summary">📋 ${L("sAnswers")}</summary>
+      <ul class="answer-list">${answerList}</ul>
+    </details>
+  </div>`;
+}
+
+function renderReport(res, pa, pb, lang) {
+  const L = k => t(k, lang);
+  const lvl = res.index >= 75 ? ["ok", L("levelHigh")] : res.index >= 55 ? ["warn", L("levelMid")] : ["bad", L("levelLow")];
+
+  const b5rows = Object.keys(B5).filter(k => k in res.bigFive.a || k in res.bigFive.b).map(k => `
+    <div class="cat-row"><span class="cat-name">${B5[k][lang]}</span>
+      <span class="cat-bar"><i style="width:${res.bigFive.a[k] ?? 0}%;background:var(--accent)"></i></span>
+      <span class="cat-bar"><i style="width:${res.bigFive.b[k] ?? 0}%;background:var(--accent2)"></i></span>
+    </div>`).join("");
+
+  const loveRow = (res.love.a && res.love.b) ? `
+    <p class="small" style="margin-top:8px">💬 ${esc(pa.name)}: <b>${LOVE[res.love.a][lang]}</b> · ${esc(pb.name)}: <b>${LOVE[res.love.b][lang]}</b></p>` : "";
+
+  const alerts = res.alerts.length ? `
+    <div class="card report-section"><h3>⚠️ ${L("rDealbreakers")}</h3>
+      ${res.alerts.map(q => `<div class="alert">${esc(q[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const topics = res.topics.length ? `
+    <div class="card report-section"><h3>🗣 ${L("rTalk")}</h3>
+      ${res.topics.map(q => `<div class="tip">${esc(q[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const list = arr => arr.length
+    ? `<ul class="clean">${arr.map(c => `<li>${esc(CATS[c][lang])} — ${res.catScores[c]}%</li>`).join("")}</ul>`
+    : `<p class="muted small">—</p>`;
+
+  return `
+  <div class="card score-hero report-section">
+    <h2>${L("rTitle")}</h2>
+    <p class="muted small">${esc(pa.name)} ♥ ${esc(pb.name)} · ${new Date().toLocaleDateString(lang === "ar" ? "ar" : "en")}</p>
+    <div class="score-num">${res.index}%</div>
+    <div class="badge ${lvl[0]}">${lvl[1]}</div>
+    <p class="muted small" style="margin-top:10px">${L("rConfidence")}: ${res.confidence}%</p>
+  </div>
+  ${alerts}
+  <div class="card report-section"><h3>📊 ${L("rRadar")}</h3>
+    <div class="radar-wrap">${radar(res.catScores, lang)}</div>
+  </div>
+  <div class="card report-section"><h3>${L("rCats")}</h3>${bars(res.catScores, lang)}</div>
+  <div class="card report-section"><h3>💪 ${L("rStrengths")}</h3>${list(res.strengths)}</div>
+  <div class="card report-section"><h3>🌱 ${L("rChallenges")}</h3>${list(res.challenges)}</div>
+  ${topics}
+  <div class="card report-section"><h3>🧭 ${L("rSummary")}</h3>
+    <div class="legend"><span><b style="background:var(--accent)"></b>${esc(pa.name)}</span>
+    <span><b style="background:var(--accent2)"></b>${esc(pb.name)}</span></div>
+    ${b5rows}${loveRow}
+    <p class="disclaimer">${L("rDisclaimer")}</p>
+  </div>`;
+}
+
+
+// MatchWise — app controller
+
+const $ = s => document.querySelector(s);
+const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
+
+let lang = localStorage.getItem(LS.lang) || "en";
+const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+let theme = localStorage.getItem(LS.theme) || (prefersDark() ? "dark" : "light");
+let quiz = { name: "", i: 0, answers: {} };
+
+// ---------- persistence ----------
+const getProfiles = () => JSON.parse(localStorage.getItem(LS.profiles) || "[]");
+const saveProfiles = p => localStorage.setItem(LS.profiles, JSON.stringify(p));
+
+// share code: base64url of compact JSON
+const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: 2 }))));
+function decodeProfile(code) {
+  try {
+    const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!o.a || !o.n) return null;
+    return { id: "imp_" + Date.now(), name: o.n, date: o.d || new Date().toISOString(), answers: o.a };
+  } catch { return null; }
+}
+
+// ---------- i18n / theme ----------
+// ---------- profile files (.json) ----------
+// A downloadable, human-readable backup. Re-uploadable to regenerate the report.
+function profileToFile(p) {
+  return JSON.stringify({
+    app: "MatchWise", version: 2, name: p.name, date: p.date, answers: p.answers,
+  }, null, 2);
+}
+function fileToProfile(text) {
+  try {
+    const o = JSON.parse(text);
+    // accept our own file format, or a bare {name, answers}
+    const name = o.name ?? o.n, answers = o.answers ?? o.a;
+    if (!name || !answers || typeof answers !== "object") return null;
+    return { id: "f_" + Date.now(), name, date: o.date || new Date().toISOString(), answers };
+  } catch { return null; }
+}
+function downloadProfile(p) {
+  const safe = String(p.name).replace(/[^\w؀-ۿ-]+/g, "_").slice(0, 20);
+  const blob = new Blob([profileToFile(p)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `matchwise-${safe}-${p.date.slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- solo preview ----------
+let lastSolo = null;
+function showSolo(p) {
+  lastSolo = p;
+  $("#soloRoot").innerHTML = renderSolo(soloSummary(p), p, lang);
+  show("solo");
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  $("#langBtn").textContent = lang === "ar" ? "ع" : "EN";
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n, lang));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh, lang));
+  localStorage.setItem(LS.lang, lang);
+  renderProfileList();
+}
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  $("#themeBtn").textContent = theme === "dark" ? "☀" : "☾";
+  localStorage.setItem(LS.theme, theme);
+}
+
+// ---------- navigation ----------
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $("#screen-" + id).classList.add("active");
+  window.scrollTo({ top: 0 });
+}
+
+// ---------- profiles UI ----------
+function renderProfileList() {
+  const list = getProfiles();
+  const box = $("#profileList");
+  box.innerHTML = list.length ? "" : `<p class="profile-empty">${t("noProfiles", lang)}</p>`;
+  for (const p of list) {
+    const div = document.createElement("div");
+    div.className = "profile-item";
+    div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span></span>
+      <span class="item-actions">
+        <button class="mini prev">${t("previewBtn", lang)}</button>
+        <button class="mini dl" title="Download">⤓</button>
+        <button class="del" title="Delete">✕</button>
+      </span>`;
+    div.querySelector("b").textContent = p.name;
+    div.querySelector(".prev").onclick = () => showSolo(p);
+    div.querySelector(".dl").onclick = () => downloadProfile(p);
+    div.querySelector(".del").onclick = () => { saveProfiles(list.filter(x => x.id !== p.id)); renderProfileList(); fillSelects(); };
+    box.appendChild(div);
+  }
+  fillSelects();
+}
+function fillSelects() {
+  const list = getProfiles();
+  for (const sel of [$("#selectA"), $("#selectB")]) {
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${t("select", lang)}</option>` +
+      list.map(p => `<option value="${p.id}">${p.name} — ${new Date(p.date).toLocaleDateString()}</option>`).join("");
+    sel.value = cur;
+  }
+}
+
+// ---------- quiz ----------
+function renderQuestion() {
+  const q = QUESTIONS[quiz.i];
+  $("#progressFill").style.width = (quiz.i / QUESTIONS.length * 100) + "%";
+  $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: QUESTIONS.length });
+  $("#backBtn").style.visibility = quiz.i > 0 ? "visible" : "hidden";
+
+  const card = $("#questionCard");
+  const catName = (STR.appName, q.cat); // category label via CATS in report; show simple tag:
+  let html = `<div class="q-cat">${quiz.i + 1} / ${QUESTIONS.length}</div>
+    <div class="q-text">${q[lang]}</div>`;
+
+  if (q.type === "likert") {
+    html += `<div class="likert"><div class="likert-scale">` +
+      [1,2,3,4,5,6,7].map(v => `<button class="likert-dot ${quiz.answers[q.id]===v?"sel":""}" data-v="${v}">${v}</button>`).join("") +
+      `</div><div class="likert-labels"><span>${t("likertLow", lang)}</span><span>${t("likertHigh", lang)}</span></div></div>`;
+  } else {
+    html += q.opts.map((o, idx) => {
+      const val = "v" in o ? o.v : o.k;
+      const sel = quiz.answers[q.id] === val ? "sel" : "";
+      return `<button class="opt ${sel}" data-idx="${idx}">${o[lang]}</button>`;
+    }).join("");
+  }
+  card.innerHTML = html;
+
+  card.querySelectorAll(".likert-dot").forEach(b => b.onclick = () => answer(q, Number(b.dataset.v)));
+  card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    const o = q.opts[Number(b.dataset.idx)];
+    answer(q, "v" in o ? o.v : o.k);
+  });
+}
+function answer(q, v) {
+  quiz.answers[q.id] = v;
+  setTimeout(() => {
+    if (quiz.i < QUESTIONS.length - 1) { quiz.i++; renderQuestion(); }
+    else finishQuiz();
+  }, 220);
+}
+function finishQuiz() {
+  const profile = {
+    id: "p_" + Date.now(),
+    name: quiz.name,
+    date: new Date().toISOString(),
+    answers: quiz.answers,
+  };
+  const list = getProfiles(); list.push(profile); saveProfiles(list);
+  $("#shareCode").value = encodeProfile(profile);
+  renderProfileList();
+  show("done");
+}
+
+// ---------- compare ----------
+function generate() {
+  const list = getProfiles();
+  const pa = list.find(p => p.id === $("#selectA").value);
+  const pb = list.find(p => p.id === $("#selectB").value);
+  const err = $("#compareError");
+  if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
+  err.textContent = "";
+  const res = compare(pa, pb);
+  $("#reportRoot").innerHTML = renderReport(res, pa, pb, lang);
+  show("report");
+}
+
+// ---------- events ----------
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-action]");
+  if (!a) return;
+  const act = a.dataset.action;
+  if (act === "go-home") show("home");
+  if (act === "start") { $("#nameInput").value = ""; show("name"); }
+  if (act === "go-compare") { fillSelects(); show("compare"); }
+  if (act === "begin-quiz") {
+    const n = $("#nameInput").value.trim();
+    if (!n) { $("#nameInput").focus(); return; }
+    quiz = { name: n, i: 0, answers: {} };
+    show("quiz"); renderQuestion();
+  }
+});
+$("#backBtn").onclick = () => { if (quiz.i > 0) { quiz.i--; renderQuestion(); } };
+$("#langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); if ($("#screen-quiz").classList.contains("active")) renderQuestion(); };
+$("#themeBtn").onclick = () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); };
+$("#copyBtn").onclick = async () => {
+  await navigator.clipboard.writeText($("#shareCode").value).catch(() => $("#shareCode").select());
+  $("#copyBtn").textContent = t("copied", lang);
+  setTimeout(() => $("#copyBtn").textContent = t("copyBtn", lang), 1500);
+};
+$("#shareBtn").onclick = () => {
+  if (navigator.share) navigator.share({ title: "MatchWise", text: $("#shareCode").value });
+  else $("#shareCode").select();
+};
+$("#importBtn").onclick = () => {
+  const p = decodeProfile($("#importCode").value);
+  const err = $("#compareError");
+  if (!p) { err.textContent = t("importBad", lang); return; }
+  const list = getProfiles(); list.push(p); saveProfiles(list);
+  $("#importCode").value = "";
+  err.textContent = ""; renderProfileList();
+  err.style.color = "var(--ok)"; err.textContent = t("importOk", lang);
+  setTimeout(() => { err.textContent = ""; err.style.color = ""; }, 2000);
+};
+$("#generateBtn").onclick = generate;
+
+// ---------- file download / upload ----------
+$("#downloadBtn").onclick = () => {
+  const list = getProfiles();
+  const p = list[list.length - 1];
+  if (p) downloadProfile(p);
+};
+$("#soloDownloadBtn").onclick = () => { if (lastSolo) downloadProfile(lastSolo); };
+
+$("#uploadBtn").onclick = () => $("#fileInput").click();
+$("#fileInput").onchange = async e => {
+  const f = e.target.files[0];
+  const msg = $("#fileMsg");
+  if (!f) return;
+  const p = fileToProfile(await f.text());
+  e.target.value = "";           // allow re-picking the same file
+  if (!p) { msg.style.color = ""; msg.textContent = t("fileBad", lang); return; }
+  const list = getProfiles(); list.push(p); saveProfiles(list);
+  msg.textContent = ""; renderProfileList();
+  showSolo(p);                   // straight to their report
+};
+
+// ---------- PWA ----------
+
+
+// ---------- init ----------
+applyTheme();
+applyLang();
+show("home");
+
+</script>
+</body>
+</html>
