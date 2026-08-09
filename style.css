@@ -203,3 +203,25 @@ ul.clean li:last-child{border:none}
   .hero h1{font-size:1.55rem}
   .q-text{font-size:1.1rem}
 }
+
+/* ── v3 additions (js/report-v3.js, js/app.js intimacy toggle) ───────────
+   Additive only — nothing above this point is touched, so v2 screens are
+   visually identical to before. Reuses existing tokens (--accent, --accent2,
+   --warn, --line, --radius) so new elements read as part of the same app. */
+
+/* Response-quality banner: a third tone between .alert (red) and .tip
+   (violet) — amber, since these notices are informational, not urgent. */
+.notice{
+  border-inline-start:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--card));
+  border-radius:12px;padding:12px 14px;font-size:.88rem;line-height:1.5;
+}
+.notice p+p{margin-top:8px}
+
+/* Intimacy module toggle on the name screen */
+#intimacyToggle{
+  border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:14px 0;
+  background:color-mix(in srgb,var(--accent2) 4%,var(--card));
+}
+#intimacyToggle label{display:flex;align-items:center;gap:10px;font-size:.95rem;cursor:pointer}
+#intimacyToggle input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent2);cursor:pointer;flex-shrink:0}
+#intimacyNote{margin-top:8px;line-height:1.5}

@@ -215,6 +215,28 @@ ul.clean li:last-child{border:none}
   .q-text{font-size:1.1rem}
 }
 
+/* ── v3 additions (js/report-v3.js, js/app.js intimacy toggle) ───────────
+   Additive only — nothing above this point is touched, so v2 screens are
+   visually identical to before. Reuses existing tokens (--accent, --accent2,
+   --warn, --line, --radius) so new elements read as part of the same app. */
+
+/* Response-quality banner: a third tone between .alert (red) and .tip
+   (violet) — amber, since these notices are informational, not urgent. */
+.notice{
+  border-inline-start:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--card));
+  border-radius:12px;padding:12px 14px;font-size:.88rem;line-height:1.5;
+}
+.notice p+p{margin-top:8px}
+
+/* Intimacy module toggle on the name screen */
+#intimacyToggle{
+  border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:14px 0;
+  background:color-mix(in srgb,var(--accent2) 4%,var(--card));
+}
+#intimacyToggle label{display:flex;align-items:center;gap:10px;font-size:.95rem;cursor:pointer}
+#intimacyToggle input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent2);cursor:pointer;flex-shrink:0}
+#intimacyNote{margin-top:8px;line-height:1.5}
+
 </style>
 </head>
 <body>
@@ -290,6 +312,10 @@ ul.clean li:last-child{border:none}
       <h2 data-i18n="whoTitle">Who is taking the assessment?</h2>
       <input type="text" id="nameInput" maxlength="30" data-i18n-ph="namePh" placeholder="Your first name">
       <p class="muted small" data-i18n="whoNote">Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.</p>
+      <div id="intimacyToggle" hidden>
+        <label><input type="checkbox" id="intimacyCheck" checked> <span id="intimacyLabel"></span></label>
+        <p class="muted small" id="intimacyNote"></p>
+      </div>
       <button class="btn primary big" data-action="begin-quiz" data-i18n="beginBtn">Begin</button>
     </div>
   </section>
@@ -430,7 +456,7 @@ const QUESTIONS = [
   en:"During a heated disagreement, I usually:",
   ar:"أثناء خلاف محتدم، عادة ما:",
   opts:[
-    { v:7, en:"Stay calm and keep discussing", ar:"أبقى هادئًا وأواصل النقاش" },
+    { v:7, en:"Stay calm and keep discussing", ar:"أبقى شخصًا هادئًا وأواصل النقاش" },
     { v:5, en:"Ask for a break, then come back to it", ar:"أطلب استراحة ثم أعود للموضوع" },
     { v:3, en:"Get loud, then cool down quickly", ar:"يرتفع صوتي ثم أهدأ سريعًا" },
     { v:1, en:"Go silent and withdraw", ar:"أصمت وأنسحب" } ] },
@@ -586,7 +612,7 @@ const QUESTIONS = [
   ar:"حصل شريكك على عرض عمل ممتاز في مدينة أخرى. أول ما يخطر لك:",
   opts:[
     { v:7, en:"An exciting adventure — let's plan it", ar:"مغامرة مشوّقة — لنخطط لها" },
-    { v:5, en:"Open to it, but genuinely worried", ar:"منفتح على الفكرة لكنني قلق فعلًا" },
+    { v:5, en:"Open to it, but genuinely worried", ar:"أنا شخص منفتح على الفكرة لكنني أشعر بالقلق فعلاً" },
     { v:2, en:"They should refuse — stability comes first", ar:"يجب أن يرفض — الاستقرار أولًا" } ] },
 { id:"g2", cat:"growth", type:"mcq", mt:"sim", w:2,
   en:"Your partner wants to leave a stable job to start their own business. You:",
@@ -719,6 +745,18 @@ const STR = {
   levelHigh:    { en: "Strong foundation", ar: "أساس قوي" },
   levelMid:     { en: "Promising — needs conversation", ar: "واعد — يحتاج حوارًا" },
   levelLow:     { en: "Significant differences to discuss", ar: "اختلافات جوهرية تستحق النقاش" },
+  // v3 additions — see js/report-v3.js. Kept in the same shared i18n table
+  // since both v2 and v3 screens read through the same t() function; adding
+  // keys here is additive and does not touch any v2 string above.
+  v3Attachment:      { en: "Attachment Style", ar: "نمط التعلّق" },
+  v3AttachmentNote:  { en: "How you tend to seek or guard closeness in relationships — estimated from a short questionnaire, not a clinical assessment.", ar: "كيف تميل إلى طلب القرب أو حمايته في العلاقات — تقدير من استبيان قصير، وليس تقييمًا سريريًا." },
+  v3Methodology:     { en: "How this was scored", ar: "كيف حُسبت هذه النتيجة" },
+  v3MethodItems:     { en: "This report draws on {a} questions, including {b} pairs asked twice in different words to check consistency.", ar: "يعتمد هذا التقرير على {a} سؤالًا، من بينها {b} أزواج أسئلة طُرحت مرتين بصيغ مختلفة للتحقق من الاتساق." },
+  v3MethodReliabilityIntro: { en: "Some sections are modeled after published psychology questionnaires. Their reliability (how consistently they measure, on a 0–1 scale) has been studied in those original questionnaires — not yet on MatchWise's own wording:", ar: "بعض الأقسام مبنية على استبيانات نفسية منشورة. تمت دراسة موثوقيتها (مدى اتساق قياسها، على مقياس ٠–١) في تلك الاستبيانات الأصلية — وليس بعد على صياغة ماتش وايز الخاصة:" },
+  v3MethodWeights:   { en: "Question weights (how much each answer counts) were set by editorial judgment, not derived from data. Treat category percentages as organized opinion, not measurement.", ar: "أوزان الأسئلة (مدى تأثير كل إجابة) حُددت بحكم تحريري، لا مستمدة من بيانات. تعامل مع نسب المحاور كرأي منظم، لا كقياس دقيق." },
+  v3MethodSimilarity:{ en: "Research note: being similar to your partner does not, by itself, predict a happy relationship. This report maps where you differ so you can talk about it — not to score you against each other.", ar: "ملاحظة بحثية: التشابه مع شريكك لا يتنبأ وحده بعلاقة سعيدة. هذا التقرير يرسم أماكن اختلافكما لتتحدثا عنها — لا ليقيّم أحدكما مقابل الآخر." },
+  v3IndexTitle:      { en: "Alignment Index", ar: "مؤشر الانسجام" },
+  v3NotAPrediction:  { en: "This is a starting point for conversation, not a prediction of your relationship's success.", ar: "هذه نقطة بداية للحوار، وليست تنبؤًا بنجاح علاقتكما." },
 };
 
 const CATS = {
@@ -1176,7 +1214,992 @@ function renderReport(res, pa, pb, lang) {
 }
 
 
+// MatchWise v3 question bank — additive layer over v2.
+// -----------------------------------------------------------------------------
+// This file does NOT modify js/questions.js. It imports the v2 bank, applies a
+// small set of metadata overrides, and appends the v3 items.
+//
+// New/changed fields introduced in v3:
+//   v3   : true            marks an item added in v3 (v2 profiles never have it)
+//   sub  : "anx" | "avo"   attachment subscale
+//   mod  : "intimacy"      optional module — skippable, gated behind a toggle
+//   qc   : "im" | "attn"   response-quality item (impression mgmt / attention)
+//   exp  : <number>        expected answer, attention-check items only
+//
+// Scoring rules for v3 items (implemented in scoring-v3.js, not here):
+//   - attachment, personality top-ups and quality items are mt:"info", w:0.
+//     They never enter the pair-matching engine. They feed the per-person
+//     profile only, which is what the evidence supports.
+//   - a Big Five domain or attachment subscale with fewer than 3 answered
+//     items must render as "not enough data", never as a number.
+//   - impression-management and attention flags lower confidence only.
+//
+// Arabic wording is a first pass and is FLAGGED FOR NATIVE-SPEAKER REVIEW
+// before release. See Build-MatchWise-v3.md, Part 4, step 1.
+//
+// Attachment items are written in the *style* of the ECR-S (Wei et al., 2007)
+// two-dimension model. No ECR/ECR-S item text is reproduced.
+// -----------------------------------------------------------------------------
+
+// NOT `import { QUESTIONS as QUESTIONS_V2 }` — build-single.js strips whole
+// `^import` lines to flatten everything into one script for the offline
+// preview file, and it doesn't understand `as` aliases, so the alias would
+// vanish along with the import and leave QUESTIONS_V2 undefined in the
+// bundle. A plain import plus a separate const alias survives that flattening
+// (the const line isn't touched by the stripper) and behaves identically as
+// an ES module. See build-single.js's own bundle order for why this matters.
+const QUESTIONS_V2 = QUESTIONS;
+
+// ── Overrides applied to existing v2 items ───────────────────────────────
+// Appreciation is a top-5 predictor of relationship quality (Joel et al., 2020)
+// and was buried inside "growth" at weight 2. It gets its own category and
+// weight 3. The item id and text are unchanged, so v2 answers still map.
+const OVERRIDES_V3 = {
+  g5: { cat: "appreciation", w: 3 },
+};
+
+// ── A. Attachment — 12 items (6 anxiety, 6 avoidance) ────────────────────
+const ATTACHMENT = [
+  { id:"an1", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, v3:true,
+    en:"I worry that my partner does not care about me as much as I care about them.",
+    ar:"أقلق من أن شريكي لا يهتم بي بقدر اهتمامي به." },
+  { id:"an2", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, v3:true,
+    en:"I need to hear often that I am loved before I feel secure.",
+    ar:"أحتاج أن أسمع كثيرًا أنني شخص محبوب حتى أشعر بالأمان." },
+  { id:"an3", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, v3:true,
+    en:"The thought of being left by someone I love frightens me.",
+    ar:"فكرة أن يتركني من أحب تخيفني." },
+  { id:"an4", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, v3:true,
+    en:"If my partner is out of touch for a while, I start imagining something is wrong between us.",
+    ar:"إذا انقطع تواصل شريكي لفترة، أبدأ بتخيّل أن هناك خطأ ما بيننا." },
+  { id:"an5", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, v3:true,
+    en:"I get upset when my partner is not available at the moment I need them.",
+    ar:"أنزعج عندما لا يكون شريكي متاحًا في اللحظة التي أحتاجه فيها." },
+  { id:"an6", cat:"attachment", sub:"anx", type:"likert", mt:"info", w:0, rv:true, pair:"an3", v3:true,
+    en:"I rarely spend time worrying about whether my partner will stay.",
+    ar:"نادرًا ما أقلق بشأن استمرار علاقتنا." },
+
+  { id:"av1", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, v3:true,
+    en:"I prefer not to let a partner see how I really feel deep down.",
+    ar:"أفضّل ألا يرى شريكي حقيقة ما أشعر به في أعماقي." },
+  { id:"av2", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, v3:true,
+    en:"I feel uncomfortable when a partner wants to be very emotionally close.",
+    ar:"أشعر بعدم الارتياح عندما يرغب شريكي في قرب عاطفي شديد." },
+  { id:"av3", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, v3:true,
+    en:"Keeping some emotional distance makes a relationship healthier.",
+    ar:"الاحتفاظ ببعض المسافة العاطفية يجعل العلاقة أكثر صحة." },
+  { id:"av4", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, rv:true, pair:"av1", v3:true,
+    en:"When something goes wrong, my partner is the first person I turn to.",
+    ar:"عندما يسوء شيء ما، شريكي هو أول من ألجأ إليه." },
+  { id:"av5", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, rv:true, pair:"av3", v3:true,
+    en:"I let my partner see the parts of me I am not proud of.",
+    ar:"أسمح لشريكي أن يرى الجوانب التي لا أفتخر بها في نفسي." },
+  { id:"av6", cat:"attachment", sub:"avo", type:"likert", mt:"info", w:0, v3:true,
+    en:"Under stress I would rather handle things alone than lean on my partner.",
+    ar:"تحت الضغط أفضّل أن أتدبر الأمور وحدي بدلًا من الاتكاء على شريكي." },
+];
+
+// ── B. Big Five top-up — 10 items (brings each domain from 1 to 3) ───────
+// Negatively-keyed items carry BOTH trait "X-" (reversed by bigFive) and
+// rv:true (reversed by norm, so consistency pairs read correctly).
+const BIGFIVE_TOPUP = [
+  { id:"p6",  cat:"personality", type:"likert", mt:"info", w:0, trait:"E+", v3:true,
+    en:"In a group, I am usually one of the people doing the talking.",
+    ar:"في المجموعة، عادةً ما أكون من الأشخاص الذين يتحدثون." },
+  { id:"p7",  cat:"personality", type:"likert", mt:"info", w:0, trait:"E-", rv:true, pair:"p1", v3:true,
+    en:"I tend to stay quiet and keep to myself around others.",
+    ar:"أميل إلى الصمت والانطواء على نفسي بين الآخرين." },
+
+  { id:"p8",  cat:"personality", type:"likert", mt:"info", w:0, trait:"C+", v3:true,
+    en:"People can count on me to do what I said I would do.",
+    ar:"يستطيع الناس الاعتماد عليّ لأفعل ما قلت إنني سأفعله." },
+  { id:"p9",  cat:"personality", type:"likert", mt:"info", w:0, trait:"C-", rv:true, pair:"p2", v3:true,
+    en:"I am often disorganized and leave things unfinished.",
+    ar:"كثيرًا ما أكون غير منظم وأترك الأمور دون إنهاء." },
+
+  { id:"p10", cat:"personality", type:"likert", mt:"info", w:0, trait:"N+", v3:true,
+    en:"My mood drops easily and takes a while to lift.",
+    ar:"يهبط مزاجي بسهولة ويحتاج وقتًا حتى يتحسن." },
+  { id:"p11", cat:"personality", type:"likert", mt:"info", w:0, trait:"N-", rv:true, pair:"p3", v3:true,
+    en:"I stay emotionally steady even when things get difficult.",
+    ar:"أحافظ على توازني العاطفي حتى عندما تصعب الأمور." },
+
+  { id:"p12", cat:"personality", type:"likert", mt:"info", w:0, trait:"O+", v3:true,
+    en:"I am curious about many different subjects.",
+    ar:"لديّ فضول تجاه مواضيع كثيرة ومختلفة." },
+  { id:"p13", cat:"personality", type:"likert", mt:"info", w:0, trait:"O-", rv:true, pair:"p4", v3:true,
+    en:"I have little patience for abstract or theoretical discussions.",
+    ar:"لا أملك صبرًا كبيرًا على النقاشات النظرية أو الافتراضية." },
+
+  { id:"p14", cat:"personality", type:"likert", mt:"info", w:0, trait:"A+", v3:true,
+    en:"I assume the best about people's intentions until shown otherwise.",
+    ar:"أفترض حسن النية في الناس حتى يثبت العكس." },
+  { id:"p15", cat:"personality", type:"likert", mt:"info", w:0, trait:"A-", rv:true, pair:"p5", v3:true,
+    en:"I can be blunt or cold with people when I am not in the mood.",
+    ar:"قد أكون شخصًا قاسيًا أو باردًا مع الناس حين لا يكون مزاجي جيدًا." },
+];
+
+// ── C. Sexual & physical intimacy — 3 items (optional module) ────────────
+// Sexual satisfaction is a top-5 relationship-specific predictor (Joel 2020).
+// Gated: mod:"intimacy" — skipping the whole module costs no confidence.
+const INTIMACY = [
+  { id:"i1", cat:"intimacy", mod:"intimacy", type:"likert", mt:"tol", w:2, v3:true,
+    en:"Physical affection is one of the main ways I feel connected to a partner.",
+    ar:"التعبير الجسدي عن الحنان من أهم الطرق التي أشعر بها بالارتباط بشريكي." },
+  { id:"i2", cat:"intimacy", mod:"intimacy", type:"likert", mt:"sim", w:2, v3:true,
+    en:"I could talk openly and without embarrassment with my partner about our physical relationship.",
+    ar:"أستطيع التحدث بصراحة ودون حرج مع شريكي عن علاقتنا الجسدية." },
+  { id:"i3", cat:"intimacy", mod:"intimacy", type:"mcq", mt:"tol", w:2, v3:true,
+    en:"If our needs for physical closeness turned out to be different, I would expect us to:",
+    ar:"إذا اختلفت حاجتنا إلى القرب الجسدي، أتوقع أن:",
+    opts:[
+      { v:7, en:"Talk about it openly and find a middle ground", ar:"نتحدث بصراحة ونجد حلًا وسطًا" },
+      { v:5, en:"Talk about it, though it would be awkward at first", ar:"نتحدث عنه رغم أن ذلك سيكون محرجًا في البداية" },
+      { v:3, en:"Adjust quietly without making it a topic", ar:"نتأقلم بهدوء دون أن نجعله موضوعًا" },
+      { v:1, en:"Avoid the subject — it is too private to discuss", ar:"نتجنب الموضوع — إنه أخص من أن يُناقش" } ] },
+];
+
+// ── D. Money — frequency of financial disagreement ───────────────────────
+// Financial disagreement is the strongest disagreement-type predictor of
+// divorce (Dew, Britt & Huston, 2012) — stronger than saving style, which m1
+// already covers.
+const MONEY_V3 = [
+  { id:"m5", cat:"money", type:"mcq", mt:"sim", w:3, v3:true,
+    en:"Realistically, how often do you expect money to cause an argument between you?",
+    ar:"واقعيًا، كم تتوقع أن يسبب المال خلافًا بينكما؟",
+    opts:[
+      { v:7, en:"Almost never — we would see money the same way", ar:"شبه أبدًا — سنرى المال بالطريقة نفسها" },
+      { v:5, en:"Occasionally, and we would settle it quickly", ar:"أحيانًا، وسنحسم الأمر بسرعة" },
+      { v:3, en:"Fairly often — money is a sensitive subject for me", ar:"كثيرًا نوعًا ما — المال موضوع حساس بالنسبة لي" },
+      { v:1, en:"Often, and those arguments would be hard to end", ar:"كثيرًا، وسيصعب إنهاء تلك الخلافات" } ] },
+];
+
+// ── E. Fairness & division of labour — 2 items ───────────────────────────
+// Perceived fairness predicts satisfaction better than actual equality does.
+const FAIRNESS = [
+  { id:"fa1", cat:"fairness", type:"mcq", mt:"tol", w:2, v3:true,
+    en:"How should housework and childcare be divided between a couple?",
+    ar:"كيف ينبغي تقسيم أعمال المنزل ورعاية الأطفال بين الزوجين؟",
+    opts:[
+      { v:7, en:"Split roughly 50/50, whatever each person's job is", ar:"مناصفة تقريبًا مهما كانت وظيفة كل طرف" },
+      { v:5, en:"Divided by who has the time, and it can shift", ar:"يُقسَّم حسب من لديه الوقت، ويمكن أن يتغير" },
+      { v:3, en:"Mostly one person, with real help from the other", ar:"طرف واحد غالبًا مع مساعدة حقيقية من الآخر" },
+      { v:1, en:"Along traditional roles — each has their own domain", ar:"تقليدي كما هو متعارف عليه في المجتمع — لكل طرف مجاله" } ] },
+  { id:"fa2", cat:"fairness", type:"likert", mt:"sim", w:2, v3:true,
+    en:"However we divide the work at home, it has to feel fair to both of us — not necessarily equal.",
+    ar:"مهما قسّمنا العمل في المنزل، يجب أن يشعر كلانا بأنه عادل — وليس بالضرورة متساويًا." },
+];
+
+// ── Response-quality items — 4 impression management + 1 attention ───────
+// BIDR-style. Never affect the compatibility score; they lower confidence only,
+// and the total deduction is capped in scoring-v3.js.
+const QUALITY_ITEMS = [
+  { id:"q1", cat:"quality", qc:"im", type:"likert", mt:"info", w:0, v3:true,
+    en:"I have never been irritated by someone close to me.",
+    ar:"لم أنزعج قط من شخص قريب مني." },
+  { id:"q2", cat:"quality", qc:"im", type:"likert", mt:"info", w:0, v3:true,
+    en:"I always admit it immediately when I am wrong.",
+    ar:"أعترف دائمًا وفورًا عندما أكون مخطئًا." },
+  { id:"q3", cat:"quality", qc:"im", type:"likert", mt:"info", w:0, v3:true,
+    // "قط" is kept deliberately: impression-management items only work as an
+    // absolute claim that almost nobody can truthfully endorse. Dropping it
+    // turns this into a normal opinion item and the flag stops detecting.
+    en:"I have never said anything about someone that I would not say to their face.",
+    ar:"لم أتكلم قط عن أحد بشيء لا أستطيع قوله في حضوره." },
+  { id:"q4", cat:"quality", qc:"im", type:"likert", mt:"info", w:0, v3:true,
+    en:"I have never regretted something I said in anger.",
+    ar:"لم أندم قط على شيء قلته في لحظة غضب." },
+  // Worded by NUMBER, not position: the scale renders left-to-right in English
+  // and right-to-left in Arabic, so "second from the top/left" would be wrong
+  // in one of the two languages. The digit 6 is unambiguous in both.
+  { id:"q5", cat:"quality", qc:"attn", type:"likert", mt:"info", w:0, exp:6, v3:true,
+    en:"This is a check question — please choose 6.",
+    ar:"هذا سؤال للتحقق من الانتباه — يرجى اختيار الرقم 6." },
+];
+
+// ── Assembly ─────────────────────────────────────────────────────────────
+
+// ── Optional-module gate copy ────────────────────────────────────────────
+// Shown before the intimacy block so the user opts in knowing what is shared.
+//
+// ⚠ PRECONDITION — this note is NOT true of the app as it stands today.
+// A partner's profile is stored locally by rememberProfile() in app.js, and
+// every stored profile gets a "Preview" button that calls renderSolo(), which
+// prints the FULL answer list. So a partner can currently read every raw
+// answer, not just the results.
+//
+// RESOLVED in step 3: app.js now tags any profile obtained through a share
+// code (compare screen's "Load partner's results" and the preview screen's
+// "open by test code") as `imported: true`, and showSolo() redacts the
+// itemized per-question answer list for those before handing the summary to
+// renderSolo(). A profile restored from your OWN downloaded .json file is
+// NOT tagged — that is the documented self-recovery path (see README), not
+// partner sharing. Aggregate results (leans, traits, confidence) still show
+// for an imported profile — only the raw item-by-item list is hidden, which
+// matches what `privacy` below promises.
+const MODULES = {
+  intimacy: {
+    ready: true,
+    title: {
+      en: "Include questions about physical intimacy?",
+      ar: "هل تريد تضمين أسئلة عن العلاقة الجسدية؟" },
+    privacy: {
+      en: "Your partner never sees your individual answers — only the combined results. You can skip this section, and skipping it does not lower your confidence score.",
+      ar: "لن يرى شريكك إجاباتك الفردية إطلاقًا — سيرى النتائج المجمّعة فقط. يمكنك تخطي هذا القسم، والتخطي لا يقلل نسبة الموثوقية." },
+  },
+};
+
+/** Items added in v3 only (28 content items — quality items excluded). */
+const NEW_ITEMS_V3 = [
+  ...ATTACHMENT,
+  ...BIGFIVE_TOPUP,
+  ...INTIMACY,
+  ...MONEY_V3,
+  ...FAIRNESS,
+];
+
+/** v2 bank with v3 metadata overrides applied. Original objects are not mutated. */
+const QUESTIONS_V2_PATCHED = QUESTIONS_V2.map(
+  q => (OVERRIDES_V3[q.id] ? { ...q, ...OVERRIDES_V3[q.id] } : q)
+);
+
+/** Full v3 bank: 47 v2 items + 28 new + 5 quality = 80. */
+const QUESTIONS_V3 = [
+  ...QUESTIONS_V2_PATCHED,
+  ...NEW_ITEMS_V3,
+  ...QUALITY_ITEMS,
+];
+
+/** Ids a v2 profile will never contain — used for graceful v2 × v3 comparison. */
+const V3_ONLY_IDS = new Set(
+  QUESTIONS_V3.filter(q => q.v3).map(q => q.id)
+);
+
+/** Consistency pairs in the v3 bank (4 inherited from v2 + 8 added here). */
+const CONSISTENCY_PAIRS = QUESTIONS_V3
+  .filter(q => q.pair)
+  .map(q => [q.id, q.pair]);
+
+/**
+ * The bank to actually present, honouring the optional-module toggle.
+ * @param {{intimacy?: boolean}} opts - modules the user opted into
+ */
+function activeQuestions({ intimacy = false } = {}) {
+  return QUESTIONS_V3.filter(q => !q.mod || (q.mod === "intimacy" && intimacy));
+}
+
+// Fail loudly on duplicate ids — a collision would silently overwrite answers.
+{
+  const seen = new Set();
+  for (const q of QUESTIONS_V3) {
+    if (seen.has(q.id)) throw new Error(`questions-v3: duplicate id "${q.id}"`);
+    seen.add(q.id);
+  }
+  for (const [id, target] of CONSISTENCY_PAIRS) {
+    if (!seen.has(target)) throw new Error(`questions-v3: "${id}" pairs with missing "${target}"`);
+  }
+}
+
+
+// MatchWise v3 scoring engine — additive layer over v2.
+// -----------------------------------------------------------------------------
+// Does NOT modify js/scoring.js. Reuses its generic, bank-agnostic exports
+// (questionScore, loveLanguage) and reimplements the bank-bound ones
+// (bigFive, profileConfidence, soloSummary, compare) against the v3 bank,
+// because those v2 functions close over the v2 QUESTIONS array internally
+// and cannot be pointed at a different bank without editing scoring.js.
+//
+// Per the build plan (Part 2.5), a v2-only profile compared against another
+// v2-only profile is never routed through this file — app.js sends that pair
+// to scoring.js and the v2 report, unchanged. This file is reached for (a)
+// any profile containing a genuine v3 answer, solo or compared, and (b) a
+// v2 profile being COMPARED against a v3 partner, where scoring.js's
+// compare() cannot be used because it can't see the v3-only items.
+//
+// Version and intimacy-module participation are both auto-detected from the
+// answers themselves (isV3Answers / profileHasIntimacy below) — nothing is
+// stamped onto the profile object and nothing needs to be threaded through
+// from app.js. A v2-origin profile's skip-penalty denominator is likewise
+// auto-derived as the 47 items it actually had, never the full v3 bank —
+// otherwise it would be unfairly penalized for "skipping" 28 questions that
+// did not exist when it was taken. Verified by regression test:
+// index/catScores/alerts/topics/strengths/challenges match scoring.js's
+// compare() exactly when both profiles only answer v2 items.
+//
+// ── Correction to the original build plan (Build-MatchWise-v3.md, §2.3.1) ──
+// The plan called for computing "McDonald's ω per multi-item subscale from
+// the user's own responses". That is not statistically meaningful: ω and α
+// are sample-level reliability coefficients computed from the covariance of
+// item scores ACROSS MANY RESPONDENTS. A single person answering each item
+// once produces no covariance to estimate — there is nothing to compute.
+// This file does NOT compute a live reliability figure per profile.
+// Instead it ships REFERENCE_RELIABILITY: the published reliability of the
+// validated instrument each subscale is *modeled after* (ECR-S, BFI-2-XS),
+// clearly labeled `measured:false` because MatchWise's own item wording is
+// adapted, not identical, and has not been separately validated. Real
+// per-item reliability requires the calibration phase in the plan's Part 3
+// (n≈300 profiles) — until that lands, this is the honest thing to show.
+// -----------------------------------------------------------------------------
+
+
+const byIdV3 = Object.fromEntries(QUESTIONS_V3.map(q => [q.id, q]));
+
+// Minimum answered items before a Big Five domain or attachment subscale is
+// reported as a number. Below this, the UI must show "not enough data".
+const SUBSCALE_MIN = 3;
+
+// Impression-management (BIDR-style) scoring.
+const IM_AGREE_THRESHOLD = 6;  // a 6 or 7 on an "I have never..." item counts as extreme
+const IM_DEDUCTION_PER_ITEM = 5;
+const IM_DEDUCTION_CAP = 15;   // total confidence points an IM pattern can cost
+
+const CONFIDENCE_FLOOR = 35;   // matches scoring.js
+
+// Published reliability of the instruments MatchWise's items are modeled
+// after. NOT measured on MatchWise's own items. Show alongside a visible
+// "reference only" label — never presented as this app's own reliability.
+const REFERENCE_RELIABILITY = {
+  attachment: {
+    anx: { alpha: [0.77, 0.86], retest1mo: 0.80, source: "Wei et al., 2007 (ECR-S)" },
+    avo: { alpha: [0.78, 0.88], retest1mo: 0.83, source: "Wei et al., 2007 (ECR-S)" },
+    measured: false,
+  },
+  personality: {
+    // BFI-2-XS domain alphas averaged .61–.63 (range .51–.72) across samples.
+    O: { alpha: [0.51, 0.72], source: "Soto & John, 2017 (BFI-2-XS)" },
+    C: { alpha: [0.51, 0.72], source: "Soto & John, 2017 (BFI-2-XS)" },
+    E: { alpha: [0.51, 0.72], source: "Soto & John, 2017 (BFI-2-XS)" },
+    A: { alpha: [0.51, 0.72], source: "Soto & John, 2017 (BFI-2-XS)" },
+    N: { alpha: [0.51, 0.72], source: "Soto & John, 2017 (BFI-2-XS)" },
+    measured: false,
+  },
+  note: "These figures describe the validated instruments MatchWise's items are modeled after, measured across large published samples. They are not a measurement of MatchWise's own item wording, which has not yet been independently validated.",
+};
+
+function normV3(q, v) {
+  if (v == null || typeof v !== "number") return null;
+  return q.rv ? 8 - v : v;
+}
+
+// ── Version / module auto-detection ───────────────────────────────────────
+// A profile carries no explicit "I took v3" flag — the app.js quiz writes a
+// plain {id: value} answers bag exactly like v2 always has. Version and
+// module participation are both inferred from WHICH ids are present, which
+// is self-describing and needs zero schema/storage changes anywhere
+// (local storage, the downloadable .json, the share code, or Supabase).
+function isV3Answers(answers) {
+  return QUESTIONS_V3.some(q => q.v3 && answers[q.id] != null);
+}
+function profileHasIntimacy(answers) {
+  return QUESTIONS_V3.some(q => q.mod === "intimacy" && answers[q.id] != null);
+}
+// The items this profile's owner actually had in front of them: the plain
+// 47-item v2 bank if no v3-only item was ever answered, otherwise the v3
+// content bank (quality items excluded — those are a response-quality
+// check, not something the person "skipped"), with the intimacy module
+// included only if they engaged with it. Used as the skip-penalty
+// denominator so nobody is penalized for "missing" questions that either
+// didn't exist yet for them, or that they legitimately opted out of.
+function itemPoolFor(answers) {
+  if (!isV3Answers(answers)) return QUESTIONS_V3.filter(q => !q.v3);
+  const hasIntimacy = profileHasIntimacy(answers);
+  return QUESTIONS_V3.filter(q => q.cat !== "quality" && (!q.mod || (q.mod === "intimacy" && hasIntimacy)));
+}
+
+// ── Big Five, suppressed below SUBSCALE_MIN ──────────────────────────────
+// Mirrors scoring.js bigFive() math exactly (raw value + trait-sign flip,
+// NOT the rv-based normV3()) so v2-only answers reproduce v2 numbers, then
+// adds the suppression rule for domains with too little data.
+function bigFiveV3(answers) {
+  const acc = {}; // domain -> [sum, n]
+  for (const q of QUESTIONS_V3) {
+    if (!q.trait) continue;
+    const v = answers[q.id];
+    if (v == null) continue;
+    const key = q.trait[0];
+    const val = q.trait[1] === "-" ? 8 - v : v;
+    (acc[key] ||= [0, 0]); acc[key][0] += val; acc[key][1]++;
+  }
+  const out = {};
+  for (const k of ["O", "C", "E", "A", "N"]) {
+    const [sum, n] = acc[k] || [0, 0];
+    if (n >= SUBSCALE_MIN) {
+      out[k] = { value: Math.round(((sum / n) - 1) / 6 * 100), n, sufficient: true };
+    } else {
+      out[k] = { value: null, n, sufficient: false, needed: SUBSCALE_MIN - n };
+    }
+  }
+  return out;
+}
+
+// ── Attachment (anxiety / avoidance), suppressed below SUBSCALE_MIN ──────
+// Uses normV3() (rv-aware) since attachment items carry no trait sign — the
+// only reversal signal on these items is rv.
+function attachmentV3(answers) {
+  const acc = { anx: [0, 0], avo: [0, 0] };
+  for (const q of QUESTIONS_V3) {
+    if (!q.sub) continue;
+    const v = normV3(q, answers[q.id]);
+    if (v == null) continue;
+    acc[q.sub][0] += v; acc[q.sub][1]++;
+  }
+  const out = {};
+  for (const k of ["anx", "avo"]) {
+    const [sum, n] = acc[k];
+    if (n >= SUBSCALE_MIN) {
+      out[k] = { value: Math.round(((sum / n) - 1) / 6 * 100), n, sufficient: true };
+    } else {
+      out[k] = { value: null, n, sufficient: false, needed: SUBSCALE_MIN - n };
+    }
+  }
+  return out;
+}
+
+// ── Response-quality checks ───────────────────────────────────────────────
+// Impression management: never touches the compatibility score. Confidence
+// only, capped so one bad-faith burst can't tank an otherwise honest profile.
+function impressionManagement(answers) {
+  const items = QUALITY_ITEMS.filter(q => q.qc === "im");
+  const answered = items.filter(q => answers[q.id] != null);
+  const extreme = answered.filter(q => answers[q.id] >= IM_AGREE_THRESHOLD);
+  const deduction = Math.min(IM_DEDUCTION_CAP, extreme.length * IM_DEDUCTION_PER_ITEM);
+  return { answered: answered.length, extreme: extreme.length, deduction, flagged: deduction > 0 };
+}
+
+// Attention check: flags the profile for the report banner. Does not affect
+// the score or confidence — a single missed check is not proof of bad faith.
+function attentionCheck(answers) {
+  const q = QUALITY_ITEMS.find(x => x.qc === "attn");
+  const v = answers[q.id];
+  if (v == null) return { tested: false, passed: null };
+  return { tested: true, passed: v === q.exp };
+}
+
+// ── Confidence ─────────────────────────────────────────────────────────────
+// Same shape as scoring.js profileConfidence(): base 90, −10 per contradicted
+// consistency pair (now 12 pairs, not 4), skip penalty over content items,
+// then the IM deduction. crossVersion knocks off an extra 10 and is set by
+// the caller when comparing a v2 profile against a v3 profile (app.js, step 3).
+// itemPool: override for the skip-penalty denominator. Auto-derived from the
+// answers themselves via itemPoolFor() when omitted — see above. Exposed as
+// an explicit param only for tests and edge cases; callers should not
+// normally need to pass it.
+function profileConfidenceV3(answers, { crossVersion = false, itemPool = null } = {}) {
+  let conf = 90;
+  const contradictions = [];
+  for (const [id, targetId] of CONSISTENCY_PAIRS) {
+    const q = byIdV3[id], twin = byIdV3[targetId];
+    const v1 = normV3(q, answers[q.id]), v2 = normV3(twin, answers[twin.id]);
+    if (v1 != null && v2 != null && Math.abs(v1 - v2) >= 3) { conf -= 10; contradictions.push([id, targetId]); }
+  }
+
+  const contentItems = itemPool || itemPoolFor(answers);
+  const answered = contentItems.filter(q => answers[q.id] != null).length;
+  const skipPenalty = Math.round((1 - answered / contentItems.length) * 30);
+  conf -= skipPenalty;
+
+  const im = impressionManagement(answers);
+  conf -= im.deduction;
+
+  if (crossVersion) conf -= 10;
+
+  return {
+    value: Math.max(CONFIDENCE_FLOOR, conf),
+    contradictions,
+    skipPenalty,
+    imDeduction: im.deduction,
+    imFlagged: im.flagged,
+    crossVersion,
+    answered,
+    total: contentItems.length,
+  };
+}
+
+// ── Solo summary ───────────────────────────────────────────────────────────
+// Intimacy inclusion is auto-detected from this profile's own answers — see
+// profileHasIntimacy() above. No flag to pass or get out of sync.
+function soloSummaryV3(p) {
+  const includeIntimacy = profileHasIntimacy(p.answers);
+  const cats = {};
+  const answers = [];
+
+  for (const q of QUESTIONS_V3) {
+    if (q.mod === "intimacy" && !includeIntimacy) continue;
+    const raw = p.answers[q.id];
+    let chosen = null;
+    if (raw != null) {
+      if (q.type === "likert") chosen = { likert: raw };
+      else {
+        const o = q.opts.find(o => ("v" in o ? o.v : o.k) === raw);
+        if (o) chosen = { opt: o };
+      }
+    }
+    answers.push({ q, chosen });
+
+    if (q.mt === "info" || !q.w) continue;
+    const v = normV3(q, raw);
+    if (v == null) continue;
+    (cats[q.cat] ||= { sum: 0, w: 0 });
+    cats[q.cat].sum += ((v - 1) / 6) * q.w;
+    cats[q.cat].w += q.w;
+  }
+
+  const catLean = {};
+  for (const c in cats) catLean[c] = Math.round(cats[c].sum / cats[c].w * 100);
+
+  const flags = [];
+  for (const [id, targetId] of CONSISTENCY_PAIRS) {
+    const q = byIdV3[id], twin = byIdV3[targetId];
+    const a = normV3(q, p.answers[q.id]), b = normV3(twin, p.answers[twin.id]);
+    if (a != null && b != null && Math.abs(a - b) >= 3) flags.push([q, twin]);
+  }
+
+  const confidence = profileConfidenceV3(p.answers);
+
+  return {
+    catLean, answers, flags,
+    bigFive: bigFiveV3(p.answers),
+    attachment: attachmentV3(p.answers),
+    love: loveLanguage(p.answers),
+    confidence: confidence.value,
+    confidenceDetail: confidence,
+    quality: {
+      im: impressionManagement(p.answers),
+      attention: attentionCheck(p.answers),
+    },
+    answered: confidence.answered,
+    total: confidence.total,
+  };
+}
+
+// ── Compare ────────────────────────────────────────────────────────────────
+// Mirrors scoring.js compare() exactly, over the v3 bank. If both profiles
+// only have v2 item ids answered, the result is numerically identical to
+// scoring.js compare() — new items simply score null and are skipped by
+// questionScore(), which already treats missing answers as "not scored".
+//
+// Both intimacy inclusion and crossVersion are auto-detected from the two
+// profiles' own answers — nothing for app.js to compute or pass in. Intimacy
+// is scored only if BOTH people answered at least one intimacy item; scoring
+// it against a partner who was never asked would compare real data to
+// silence, which is not a fair comparison.
+function compareV3(pa, pb, opts = {}) {
+  const includeIntimacy = opts.includeIntimacy ?? (profileHasIntimacy(pa.answers) && profileHasIntimacy(pb.answers));
+  const crossVersion = opts.crossVersion ?? (isV3Answers(pa.answers) !== isV3Answers(pb.answers));
+  const cats = {};
+  const perQ = [];
+  const alerts = [];
+
+  for (const q of QUESTIONS_V3) {
+    if (q.mod === "intimacy" && !includeIntimacy) continue;
+    const s = questionScore(q, pa.answers[q.id], pb.answers[q.id]);
+    if (s == null) continue;
+    (cats[q.cat] ||= { sum: 0, w: 0 });
+    cats[q.cat].sum += s * q.w;
+    cats[q.cat].w += q.w;
+    perQ.push({ q, s });
+    if (q.db) {
+      const d = Math.abs(normV3(q, pa.answers[q.id]) - normV3(q, pb.answers[q.id]));
+      if (d >= 3) alerts.push(q);
+    }
+  }
+
+  const catScores = {};
+  let total = 0, totalW = 0;
+  for (const c in cats) {
+    catScores[c] = Math.round(cats[c].sum / cats[c].w * 100);
+    total += cats[c].sum; totalW += cats[c].w;
+  }
+  let index = Math.round(total / totalW * 100);
+  if (alerts.length) index = Math.min(index, 65 - (alerts.length - 1) * 10);
+
+  const confA = profileConfidenceV3(pa.answers, { crossVersion });
+  const confB = profileConfidenceV3(pb.answers, { crossVersion });
+  const confidence = Math.min(confA.value, confB.value);
+
+  const topics = perQ
+    .filter(r => r.s < 0.55 && r.q.w >= 2)
+    .sort((x, y) => x.s - y.s)
+    .slice(0, 6)
+    .map(r => r.q);
+
+  const sorted = Object.entries(catScores).sort((a, b) => b[1] - a[1]);
+  return {
+    index, confidence, catScores, alerts, topics,
+    strengths: sorted.filter(([, v]) => v >= 75).slice(0, 4).map(([c]) => c),
+    challenges: sorted.filter(([, v]) => v < 60).map(([c]) => c),
+    bigFive: { a: bigFiveV3(pa.answers), b: bigFiveV3(pb.answers) },
+    attachment: { a: attachmentV3(pa.answers), b: attachmentV3(pb.answers) },
+    love: { a: loveLanguage(pa.answers), b: loveLanguage(pb.answers) },
+    quality: {
+      a: { im: impressionManagement(pa.answers), attention: attentionCheck(pa.answers) },
+      b: { im: impressionManagement(pb.answers), attention: attentionCheck(pb.answers) },
+    },
+    crossVersion,
+  };
+}
+
+
+// MatchWise v3 report renderer — additive layer over v2.
+// -----------------------------------------------------------------------------
+// Does NOT modify js/report.js. report.js exports only renderSolo/renderReport
+// — its escV3()/radarV3()/barsV3()/POLES/B5_V3/LOVE_V3 helpers are module-private, so they
+// can't be imported and extended. This file duplicates the handful of small
+// helpers it needs (same pattern already used in scoring-v3.js, for the same
+// reason: nothing there is exported either). CATS *is* exported by i18n.js,
+// so category labels are extended, not duplicated.
+//
+// Design: builds on the app's existing visual language (the rose→violet
+// gradient used for the score number and progress bar, the soft rounded
+// cards, the uppercase accent2 "eyebrow" labels) rather than introducing a
+// new one — v2 and v3 screens should feel like the same app. The one new
+// signature element is the attachment quadrant chart (see attachmentPlot
+// below): a small, honestly-captioned 2-axis plot in the same restrained
+// style as the existing radarV3 chart, using warm plain-language quadrant
+// names instead of clinical attachment-theory jargon (nobody should read
+// "disorganized" about themselves from a 6-item unvalidated questionnaire).
+// -----------------------------------------------------------------------------
+
+
+const escV3 = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ── Category labels & poles, extended for the 3 new scored categories ─────
+// (attachment and quality are mt:"info"/w:0 — they never appear in
+// catScores/catLean, so they need no entry here.)
+const CATS_V3 = {
+  ...CATS,
+  appreciation: { en: "Appreciation", ar: "التقدير" },
+  fairness: { en: "Fairness at Home", ar: "العدالة في المنزل" },
+  intimacy: { en: "Physical Intimacy", ar: "القرب الجسدي" },
+};
+const POLES_V3 = {
+  personality:   { lo:{en:"Reserved",ar:"متحفّظ"},        hi:{en:"Outgoing",ar:"منفتح"} },
+  communication: { lo:{en:"Keeps it in",ar:"يكتم"},        hi:{en:"Talks it out",ar:"يتحدث"} },
+  conflict:      { lo:{en:"Withdraws",ar:"ينسحب"},         hi:{en:"Engages calmly",ar:"يناقش بهدوء"} },
+  money:         { lo:{en:"Spender",ar:"منفق"},            hi:{en:"Saver",ar:"مدّخر"} },
+  lifestyle:     { lo:{en:"Homebody",ar:"بيتوتي"},         hi:{en:"Out and about",ar:"كثير الخروج"} },
+  family:        { lo:{en:"Independent",ar:"مستقل"},       hi:{en:"Family-centred",ar:"متمحور حول العائلة"} },
+  values:        { lo:{en:"Secular",ar:"غير متديّن"},      hi:{en:"Practising",ar:"ملتزم"} },
+  career:        { lo:{en:"Life first",ar:"الحياة أولًا"}, hi:{en:"Career-driven",ar:"مدفوع بالعمل"} },
+  trust:         { lo:{en:"Values privacy",ar:"يقدّر الخصوصية"}, hi:{en:"Fully open",ar:"منفتح تمامًا"} },
+  emotional:     { lo:{en:"Self-contained",ar:"مكتفٍ ذاتيًا"}, hi:{en:"Needs closeness",ar:"يحتاج القرب"} },
+  growth:        { lo:{en:"Prefers stability",ar:"يفضّل الاستقرار"}, hi:{en:"Embraces change",ar:"يتقبّل التغيير"} },
+  future:        { lo:{en:"Roots down",ar:"جذور ثابتة"},   hi:{en:"Open road",ar:"طريق مفتوح"} },
+  appreciation:  { lo:{en:"Rarely says it",ar:"نادرًا ما يعبّر"}, hi:{en:"Notices often",ar:"يلاحظ كثيرًا"} },
+  fairness:      { lo:{en:"Traditional split",ar:"تقسيم تقليدي"}, hi:{en:"Fully shared",ar:"مشترك بالكامل"} },
+  intimacy:      { lo:{en:"Private about it",ar:"يفضّل الخصوصية"}, hi:{en:"Openly expressive",ar:"معبّر بصراحة"} },
+};
+const LOVE_V3 = {
+  words: { en: "Words of affirmation", ar: "كلمات التقدير" },
+  time:  { en: "Quality time", ar: "الوقت النوعي" },
+  acts:  { en: "Acts of service", ar: "أفعال الخدمة" },
+  touch: { en: "Physical touch", ar: "اللمسة الجسدية" },
+  gifts: { en: "Gifts", ar: "الهدايا" },
+};
+const B5_V3 = {
+  O: { en: "Openness", ar: "الانفتاح" }, C: { en: "Conscientiousness", ar: "الانضباط" },
+  E: { en: "Extraversion", ar: "الانبساط" }, A: { en: "Agreeableness", ar: "الوفاق" },
+  N: { en: "Emotional sensitivity", ar: "الحساسية الانفعالية" },
+};
+const B5_ORDER = ["O", "C", "E", "A", "N"];
+
+const NEED_MORE = {
+  en: (n, needed) => `Not enough data yet (${n} of ${needed} questions answered)`,
+  ar: (n, needed) => `لا توجد بيانات كافية بعد (تمت الإجابة عن ${n} من ${needed} أسئلة)`,
+};
+
+// ── Duplicated from report.js (not exported there — see file header) ─────
+function radarV3(catScores, lang) {
+  const keys = Object.keys(catScores);
+  const n = keys.length, cx = 160, cy = 150, R = 105;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  let grid = "";
+  for (let g = 1; g <= 4; g++) {
+    const pts = keys.map((_, i) => pt(i, R * g / 4).join(",")).join(" ");
+    grid += `<polygon points="${pts}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  }
+  const axes = keys.map((_, i) => {
+    const [x, y] = pt(i, R);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+  }).join("");
+  const poly = keys.map((k, i) => pt(i, R * catScores[k] / 100).join(",")).join(" ");
+  const labels = keys.map((k, i) => {
+    const [x, y] = pt(i, R + 22);
+    const name = CATS_V3[k] ? CATS_V3[k][lang] : k;
+    return `<text x="${x}" y="${y}" font-size="9" text-anchor="middle" fill="var(--muted)">${escV3(name)}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 320 300" width="100%" style="max-width:380px">
+    ${grid}${axes}
+    <polygon points="${poly}" fill="var(--accent2)" fill-opacity=".25" stroke="var(--accent2)" stroke-width="2"/>
+    ${labels}</svg>`;
+}
+function barsV3(catScores, lang) {
+  return Object.entries(catScores).sort((a, b) => b[1] - a[1]).map(([c, v]) => `
+    <div class="cat-row">
+      <span class="cat-name">${escV3(CATS_V3[c] ? CATS_V3[c][lang] : c)}</span>
+      <span class="cat-bar"><i style="width:${v}%"></i></span>
+      <span class="cat-val">${v}%</span>
+    </div>`).join("");
+}
+
+// ── Signature element: attachment quadrant chart ──────────────────────────
+// x = anxiety (0 secure → 100 anxious), y = avoidance (0 secure → 100
+// avoidant, plotted upward). Plain-language quadrant names on purpose — see
+// file header. `pts`: [{x,y,name,color}], 1 or 2 points.
+function attachmentPlot(pts, lang) {
+  const S = 260, PAD = 34, W = S + PAD * 2;
+  const px = v => PAD + (v / 100) * S;
+  const py = v => PAD + S - (v / 100) * S;
+  const QUAD = {
+    en: ["Steady & open", "Seeks closeness", "Values independence", "Guarded but longing"],
+    ar: ["مستقر ومنفتح", "يسعى للقرب", "يقدّر الاستقلالية", "متحفّظ لكنه يتوق للقرب"],
+  }[lang];
+  const dots = pts.map(p => `
+    <circle cx="${px(p.x)}" cy="${py(p.y)}" r="8" fill="${p.color}" stroke="var(--card)" stroke-width="2.5"/>
+    ${p.name ? `<text x="${px(p.x)}" y="${py(p.y) - 14}" font-size="11" font-weight="700" text-anchor="middle" fill="${p.color}">${escV3(p.name)}</text>` : ""}
+  `).join("");
+  return `<svg viewBox="0 0 ${W} ${W}" width="100%" style="max-width:320px;display:block;margin:0 auto">
+    <rect x="${PAD}" y="${PAD}" width="${S/2}" height="${S/2}" fill="var(--ok)" fill-opacity=".06"/>
+    <rect x="${PAD+S/2}" y="${PAD}" width="${S/2}" height="${S/2}" fill="var(--accent)" fill-opacity=".06"/>
+    <rect x="${PAD}" y="${PAD+S/2}" width="${S/2}" height="${S/2}" fill="var(--accent2)" fill-opacity=".06"/>
+    <rect x="${PAD+S/2}" y="${PAD+S/2}" width="${S/2}" height="${S/2}" fill="var(--warn)" fill-opacity=".08"/>
+    <rect x="${PAD}" y="${PAD}" width="${S}" height="${S}" fill="none" stroke="var(--line)"/>
+    <line x1="${PAD+S/2}" y1="${PAD}" x2="${PAD+S/2}" y2="${PAD+S}" stroke="var(--line)"/>
+    <line x1="${PAD}" y1="${PAD+S/2}" x2="${PAD+S}" y2="${PAD+S/2}" stroke="var(--line)"/>
+    <text x="${PAD+S*0.25}" y="${PAD+S*0.5-8}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${escV3(QUAD[0])}</text>
+    <text x="${PAD+S*0.75}" y="${PAD+S*0.5-8}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${escV3(QUAD[1])}</text>
+    <text x="${PAD+S*0.25}" y="${PAD+S*0.5+16}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${escV3(QUAD[2])}</text>
+    <text x="${PAD+S*0.75}" y="${PAD+S*0.5+16}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${escV3(QUAD[3])}</text>
+    <text x="${PAD+S/2}" y="${PAD+S+22}" font-size="10" text-anchor="middle" fill="var(--muted)">${lang==="ar"?"القلق ←":"→ Anxiety"}</text>
+    <text x="${PAD-12}" y="${PAD+S/2}" font-size="10" text-anchor="middle" fill="var(--muted)" transform="rotate(-90 ${PAD-12} ${PAD+S/2})">${lang==="ar"?"التجنّب ←":"→ Avoidance"}</text>
+    ${dots}
+  </svg>`;
+}
+
+function attachmentSection(att, lang, opts = {}) {
+  const L = k => t(k, lang);
+  const ready = att.anx.sufficient && att.avo.sufficient;
+  const caveat = { en: "Simplified labels from a short, unvalidated questionnaire — not a diagnosis.",
+                   ar: "تصنيفات مبسّطة من استبيان قصير غير مُعتمَد علميًا — وليست تشخيصًا." }[lang];
+  if (!ready) {
+    const short = !att.anx.sufficient ? att.anx : att.avo;
+    return `<div class="card report-section"><h3>🧭 ${L("v3Attachment")}</h3>
+      <p class="muted small">${NEED_MORE[lang](short.n, SUBSCALE_MIN)}</p></div>`;
+  }
+  const pts = opts.pts || [{ x: att.anx.value, y: att.avo.value, color: "var(--accent2)" }];
+  return `<div class="card report-section"><h3>🧭 ${L("v3Attachment")}</h3>
+    <p class="muted small" style="margin-bottom:10px">${L("v3AttachmentNote")}</p>
+    ${attachmentPlot(pts, lang)}
+    ${opts.legend || ""}
+    <p class="disclaimer">${caveat}</p>
+  </div>`;
+}
+
+function qualityBanner(q, lang) {
+  const bits = [];
+  if (q.im.flagged) bits.push({ en: "A few of your answers to the absolute \"always / never\" questions came out unusually strong. That's common, and it only affects the confidence percentage — never your results.",
+                                 ar: "بعض إجاباتك على أسئلة \"دائمًا / أبدًا\" المطلقة جاءت قوية بشكل غير معتاد. هذا أمر شائع، ويؤثر فقط على نسبة الموثوقية — لا على نتائجك." }[lang]);
+  if (q.attention.tested && !q.attention.passed) bits.push({ en: "One question simply asked you to pick a specific number, to check attention. Your answer didn't match — it doesn't affect your results, but it's worth a look if anything here feels off.",
+                                                               ar: "طلب أحد الأسئلة ببساطة اختيار رقم معيّن للتحقق من الانتباه. إجابتك لم تطابقه — هذا لا يؤثر على نتائجك، لكن يستحق نظرة إن شعرت أن شيئًا هنا غير دقيق." }[lang]);
+  if (!bits.length) return "";
+  return `<div class="notice report-section">${bits.map(b => `<p>${escV3(b)}</p>`).join("")}</div>`;
+}
+
+function methodologyPanel(lang, { itemCount, pairCount }) {
+  const L = k => t(k, lang);
+  const rr = REFERENCE_RELIABILITY;
+  const rows = [
+    { label: { en: "Attachment (anxiety)", ar: "التعلّق (القلق)" }, r: rr.attachment.anx },
+    { label: { en: "Attachment (avoidance)", ar: "التعلّق (التجنّب)" }, r: rr.attachment.avo },
+    { label: { en: "Personality traits", ar: "سمات الشخصية" }, r: rr.personality.O },
+  ];
+  const relRows = rows.map(r => `<li>${escV3(r.label[lang])}: α ${r.r.alpha[0]}–${r.r.alpha[1]} <span class="muted">(${escV3(r.r.source)})</span></li>`).join("");
+  return `<div class="card report-section">
+    <details><summary class="ans-summary">📐 ${L("v3Methodology")}</summary>
+      <p class="small" style="margin-top:10px">${t("v3MethodItems", lang, { a: itemCount, b: pairCount })}</p>
+      <p class="small muted" style="margin-top:8px">${L("v3MethodReliabilityIntro")}</p>
+      <ul class="clean small">${relRows}</ul>
+      <p class="small muted" style="margin-top:8px">${rr.note}</p>
+      <p class="small muted" style="margin-top:8px">${L("v3MethodWeights")}</p>
+      <p class="small muted" style="margin-top:8px">${L("v3MethodSimilarity")}</p>
+    </details>
+  </div>`;
+}
+
+// ── Solo report ─────────────────────────────────────────────────────────
+function renderSoloV3(s, p, lang) {
+  const L = k => t(k, lang);
+
+  const leanRows = Object.entries(s.catLean).map(([c, v]) => {
+    const pole = POLES_V3[c];
+    const ends = pole ? `<div class="lean-ends"><span>${pole.lo[lang]}</span><span>${pole.hi[lang]}</span></div>` : "";
+    return `<div class="lean-block">
+      <div class="lean-head"><span>${escV3(CATS_V3[c] ? CATS_V3[c][lang] : c)}</span><b>${v}%</b></div>
+      <span class="cat-bar"><i style="width:${v}%"></i></span>${ends}
+    </div>`;
+  }).join("");
+
+  const b5rows = B5_ORDER.map(k => {
+    const d = s.bigFive[k];
+    if (!d) return "";
+    if (!d.sufficient) return `<div class="cat-row"><span class="cat-name">${B5_V3[k][lang]}</span><span class="muted small">${NEED_MORE[lang](d.n, SUBSCALE_MIN)}</span></div>`;
+    return `<div class="cat-row"><span class="cat-name">${B5_V3[k][lang]}</span>
+      <span class="cat-bar"><i style="width:${d.value}%"></i></span>
+      <span class="cat-val">${d.value}%</span></div>`;
+  }).join("");
+
+  const loveRow = s.love ? `<p style="margin-top:12px">${L("sLove")}: <b>${LOVE_V3[s.love][lang]}</b></p>` : "";
+
+  const flags = s.flags.length ? `
+    <div class="card report-section"><h3>🔍 ${L("sFlags")}</h3>
+      <p class="muted small" style="margin-bottom:10px">${L("sFlagNote")}</p>
+      ${s.flags.map(([a, b]) => `<div class="tip">${escV3(a[lang])}<br><span class="muted">↕</span><br>${escV3(b[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const answerList = s.answers.map(({ q, chosen }) => {
+    let val = `<span class="muted">—</span>`;
+    if (chosen?.opt) val = escV3(chosen.opt[lang]);
+    else if (chosen?.likert) val = `<b>${chosen.likert}</b> / 7`;
+    return `<li><span class="ans-q">${escV3(q[lang])}</span><span class="ans-v">${val}</span></li>`;
+  }).join("");
+
+  return `
+  <div class="card score-hero report-section">
+    <h2>${L("sTitle")}</h2>
+    <p class="muted small">👤 ${escV3(p.name)} · ${new Date(p.date).toLocaleDateString(lang === "ar" ? "ar" : "en")}</p>
+    <div class="score-num">${s.confidence}%</div>
+    <div class="badge ${s.confidence >= 75 ? "ok" : s.confidence >= 55 ? "warn" : "bad"}">${L("rConfidence")}</div>
+    <p class="muted small" style="margin-top:10px">${t("sComplete", lang, { a: s.answered, b: s.total })}</p>
+    <p class="disclaimer">${L("sSub")}</p>
+  </div>
+  ${qualityBanner(s.quality, lang)}
+  <div class="card report-section"><h3>🧭 ${L("sLean")}</h3>
+    <p class="muted small" style="margin-bottom:14px">${L("sLeanNote")}</p>
+    ${leanRows}
+  </div>
+  <div class="card report-section"><h3>🧬 ${L("sTraits")}</h3>${b5rows}${loveRow}</div>
+  ${attachmentSection(s.attachment, lang)}
+  ${flags}
+  <div class="card report-section">
+    <details><summary class="ans-summary">📋 ${L("sAnswers")}</summary>
+      <ul class="answer-list">${answerList}</ul>
+    </details>
+  </div>
+  ${methodologyPanel(lang, { itemCount: s.total, pairCount: 12 })}`;
+}
+
+// ── Compare report ──────────────────────────────────────────────────────
+const CROSS_VERSION_NOTE = {
+  en: "One of you took an earlier, shorter version of this assessment. The score above is based only on the questions you both answered, and the confidence percentage has been lowered to reflect that.",
+  ar: "أجرى أحدكما نسخة أقدم وأقصر من هذا التقييم. النتيجة أعلاه مبنية فقط على الأسئلة التي أجاب عنها كلاكما، وتم تخفيض نسبة الموثوقية لتعكس ذلك.",
+};
+
+function renderReportV3(res, pa, pb, lang) {
+  const L = k => t(k, lang);
+  const lvl = res.index >= 75 ? ["ok", L("levelHigh")] : res.index >= 55 ? ["warn", L("levelMid")] : ["bad", L("levelLow")];
+
+  const b5rows = B5_ORDER.filter(k => (k in res.bigFive.a) || (k in res.bigFive.b)).map(k => {
+    const da = res.bigFive.a[k], db = res.bigFive.b[k];
+    const wa = da?.sufficient ? da.value : 0, wb = db?.sufficient ? db.value : 0;
+    const note = (da && !da.sufficient) || (db && !db.sufficient)
+      ? `<span class="muted small">${NEED_MORE[lang]((da&&!da.sufficient)?da.n:db.n, SUBSCALE_MIN)}</span>` : "";
+    return `<div class="cat-row"><span class="cat-name">${B5_V3[k][lang]}</span>
+      <span class="cat-bar"><i style="width:${wa}%;background:var(--accent)"></i></span>
+      <span class="cat-bar"><i style="width:${wb}%;background:var(--accent2)"></i></span>
+      ${note}</div>`;
+  }).join("");
+
+  const loveRow = (res.love.a && res.love.b) ? `
+    <p class="small" style="margin-top:8px">💬 ${escV3(pa.name)}: <b>${LOVE_V3[res.love.a][lang]}</b> · ${escV3(pb.name)}: <b>${LOVE_V3[res.love.b][lang]}</b></p>` : "";
+
+  const alerts = res.alerts.length ? `
+    <div class="card report-section"><h3>⚠️ ${L("rDealbreakers")}</h3>
+      ${res.alerts.map(q => `<div class="alert">${escV3(q[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const topics = res.topics.length ? `
+    <div class="card report-section"><h3>🗣 ${L("rTalk")}</h3>
+      ${res.topics.map(q => `<div class="tip">${escV3(q[lang])}</div>`).join("")}
+    </div>` : "";
+
+  const list = arr => arr.length
+    ? `<ul class="clean">${arr.map(c => `<li>${escV3(CATS_V3[c] ? CATS_V3[c][lang] : c)} — ${res.catScores[c]}%</li>`).join("")}</ul>`
+    : `<p class="muted small">—</p>`;
+
+  const crossNote = res.crossVersion ? `<p class="muted small report-section">${CROSS_VERSION_NOTE[lang]}</p>` : "";
+
+  const attA = res.attachment.a, attB = res.attachment.b;
+  const attReady = attA.anx.sufficient && attA.avo.sufficient && attB.anx.sufficient && attB.avo.sufficient;
+  const attachmentBoth = attReady ? attachmentSection(attA, lang, {
+    pts: [
+      { x: attA.anx.value, y: attA.avo.value, color: "var(--accent)", name: pa.name },
+      { x: attB.anx.value, y: attB.avo.value, color: "var(--accent2)", name: pb.name },
+    ],
+    legend: `<div class="legend"><span><b style="background:var(--accent)"></b>${escV3(pa.name)}</span>
+      <span><b style="background:var(--accent2)"></b>${escV3(pb.name)}</span></div>`,
+  }) : "";
+
+  const qualA = qualityBanner(res.quality.a, lang), qualB = qualityBanner(res.quality.b, lang);
+  const quality = (qualA || qualB) ? `<div class="report-section">
+      ${qualA ? `<p class="small muted" style="margin-bottom:4px">${escV3(pa.name)}</p>${qualA}` : ""}
+      ${qualB ? `<p class="small muted" style="margin:8px 0 4px">${escV3(pb.name)}</p>${qualB}` : ""}
+    </div>` : "";
+
+  return `
+  ${alerts}
+  ${topics}
+  <div class="card score-hero report-section">
+    <h2>${L("v3IndexTitle")}</h2>
+    <p class="muted small">${escV3(pa.name)} ♥ ${escV3(pb.name)} · ${new Date().toLocaleDateString(lang === "ar" ? "ar" : "en")}</p>
+    <div class="score-num">${res.index}%</div>
+    <div class="badge ${lvl[0]}">${lvl[1]}</div>
+    <p class="muted small" style="margin-top:10px">${L("rConfidence")}: ${res.confidence}%</p>
+    <p class="disclaimer">${L("v3NotAPrediction")}</p>
+  </div>
+  ${crossNote}
+  <div class="card report-section"><h3>📊 ${L("rRadar")}</h3>
+    <div class="radarV3-wrap">${radarV3(res.catScores, lang)}</div>
+  </div>
+  <div class="card report-section"><h3>${L("rCats")}</h3>${barsV3(res.catScores, lang)}</div>
+  <div class="card report-section"><h3>💪 ${L("rStrengths")}</h3>${list(res.strengths)}</div>
+  <div class="card report-section"><h3>🌱 ${L("rChallenges")}</h3>${list(res.challenges)}</div>
+  ${attachmentBoth}
+  ${quality}
+  <div class="card report-section"><h3>🧭 ${L("rSummary")}</h3>
+    <div class="legend"><span><b style="background:var(--accent)"></b>${escV3(pa.name)}</span>
+    <span><b style="background:var(--accent2)"></b>${escV3(pb.name)}</span></div>
+    ${b5rows}${loveRow}
+    <p class="disclaimer">${L("rDisclaimer")}</p>
+  </div>
+  ${methodologyPanel(lang, { itemCount: Math.max(res.confidence ? 80 : 47, 47), pairCount: 12 })}`;
+}
+
+
 // MatchWise — app controller
+
+// ---------- v3 routing helpers ----------
+// A profile is "v3" purely by virtue of which item ids appear in its answers
+// — see isV3Answers() in scoring-v3.js. Nothing is stamped on the profile
+// object, so every existing profile (local storage, downloaded .json, share
+// codes, Supabase rows) keeps working with zero migration.
+//
+// Step 3 shipped a bridge that flattened v3 results into v2's report shape
+// so profiles rendered before report-v3.js existed. That bridge is gone now
+// — v3 profiles go straight through renderSoloV3/renderReportV3, which
+// understand the real {value,n,sufficient} shape and draw the attachment
+// chart, methodology panel and quality banner report.js never had.
+//
+// Partner-shared profiles must not expose the itemized answer list — only
+// aggregate results. Self-restored backups (via the "Choose file…" flow)
+// are NOT redacted; that path is documented as personal recovery, not
+// sharing. See MODULES.intimacy note in questions-v3.js for why this had to
+// be true before the intimacy module could ship.
+function redactAnswerList(s) {
+  return { ...s, answers: s.answers.map(a => ({ q: a.q, chosen: null })) };
+}
 
 const $ = s => document.querySelector(s);
 const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
@@ -1184,14 +2207,18 @@ const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
 let theme = localStorage.getItem(LS.theme) || (prefersDark() ? "dark" : "light");
-let quiz = { name: "", i: 0, answers: {} };
+// quiz.bank: the actual question list being asked, chosen at "Begin" from
+// the intimacy toggle. quiz.intimacy: the toggle's current value.
+let quiz = { name: "", i: 0, answers: {}, bank: [], intimacy: true };
 
 // ---------- persistence ----------
 const getProfiles = () => JSON.parse(localStorage.getItem(LS.profiles) || "[]");
 const saveProfiles = p => localStorage.setItem(LS.profiles, JSON.stringify(p));
 
-// share code: base64url of compact JSON
-const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: 2 }))));
+// share code: base64url of compact JSON. `v` is written for humans reading
+// the payload — nothing in this app parses it back out (see decodeProfile
+// below), so getting it right is a courtesy, not a functional requirement.
+const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: isV3Answers(p.answers) ? 3 : 2 }))));
 function decodeProfile(code) {
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
@@ -1205,7 +2232,7 @@ function decodeProfile(code) {
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
 function profileToFile(p) {
   return JSON.stringify({
-    app: "MatchWise", version: 2, name: p.name, date: p.date,
+    app: "MatchWise", version: isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
     code: p.code || undefined, answers: p.answers,
   }, null, 2);
 }
@@ -1234,7 +2261,10 @@ function downloadProfile(p) {
 let lastSolo = null;
 function showSolo(p) {
   lastSolo = p;
-  $("#soloRoot").innerHTML = renderSolo(soloSummary(p), p, lang);
+  const v3 = isV3Answers(p.answers);
+  let s = v3 ? soloSummaryV3(p) : soloSummary(p);
+  if (p.imported) s = redactAnswerList(s);
+  $("#soloRoot").innerHTML = v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
   show("solo");
 }
 
@@ -1246,6 +2276,17 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh, lang));
   localStorage.setItem(LS.lang, lang);
   renderProfileList();
+  applyIntimacyModuleCopy();
+}
+// Pulled straight from questions-v3.js MODULES rather than duplicated into
+// i18n.js — one source of truth for text that's tightly coupled to the
+// module's gating logic (see the "RESOLVED in step 3" note there).
+function applyIntimacyModuleCopy() {
+  const label = $("#intimacyLabel"), note = $("#intimacyNote"), wrap = $("#intimacyToggle");
+  if (!label || !wrap) return;
+  wrap.hidden = !MODULES.intimacy.ready;
+  label.textContent = MODULES.intimacy.title[lang];
+  note.textContent = MODULES.intimacy.privacy[lang];
 }
 function applyTheme() {
   document.documentElement.dataset.theme = theme;
@@ -1308,14 +2349,14 @@ function openPreviewPicker() {
 
 // ---------- quiz ----------
 function renderQuestion() {
-  const q = QUESTIONS[quiz.i];
-  $("#progressFill").style.width = (quiz.i / QUESTIONS.length * 100) + "%";
-  $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: QUESTIONS.length });
+  const q = quiz.bank[quiz.i];
+  $("#progressFill").style.width = (quiz.i / quiz.bank.length * 100) + "%";
+  $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: quiz.bank.length });
   $("#backBtn").style.visibility = quiz.i > 0 ? "visible" : "hidden";
 
   const card = $("#questionCard");
   const catName = (STR.appName, q.cat); // category label via CATS in report; show simple tag:
-  let html = `<div class="q-cat">${quiz.i + 1} / ${QUESTIONS.length}</div>
+  let html = `<div class="q-cat">${quiz.i + 1} / ${quiz.bank.length}</div>
     <div class="q-text">${q[lang]}</div>`;
 
   if (q.type === "likert") {
@@ -1340,7 +2381,7 @@ function renderQuestion() {
 function answer(q, v) {
   quiz.answers[q.id] = v;
   setTimeout(() => {
-    if (quiz.i < QUESTIONS.length - 1) { quiz.i++; renderQuestion(); }
+    if (quiz.i < quiz.bank.length - 1) { quiz.i++; renderQuestion(); }
     else finishQuiz();
   }, 220);
 }
@@ -1396,8 +2437,12 @@ function generate() {
   const err = $("#compareError");
   if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
   err.textContent = "";
-  const res = compare(pa, pb);
-  $("#reportRoot").innerHTML = renderReport(res, pa, pb, lang);
+  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  if (bothV2) {
+    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
+  } else {
+    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
+  }
   show("report");
 }
 
@@ -1413,7 +2458,9 @@ document.addEventListener("click", e => {
   if (act === "begin-quiz") {
     const n = $("#nameInput").value.trim();
     if (!n) { $("#nameInput").focus(); return; }
-    quiz = { name: n, i: 0, answers: {} };
+    const intimacyEl = $("#intimacyCheck");
+    const includeIntimacy = intimacyEl ? intimacyEl.checked : true;
+    quiz = { name: n, i: 0, answers: {}, intimacy: includeIntimacy, bank: activeQuestions({ intimacy: includeIntimacy }) };
     show("quiz"); renderQuestion();
   }
 });
@@ -1434,11 +2481,16 @@ $("#shareBtn").onclick = () => {
 // treated as a legacy v2 share code so old links keep working offline.
 // Returns a profile, or null when the code simply doesn't exist.
 // Throws only when the network fails, so callers can say so plainly.
+//
+// Every profile that arrives via a typed code is tagged `imported: true` —
+// this is the partner-sharing path (as opposed to "Choose file…", which is
+// documented as self-recovery of your own backup and is deliberately left
+// untagged). showSolo() uses the tag to hide the itemized answer list.
 async function resolveCode(raw) {
   const input = String(raw || "").trim();
   if (!input) return null;
-  if (isCloudCode(input)) return await fetchProfile(input);
-  return decodeProfile(input);
+  const p = isCloudCode(input) ? await fetchProfile(input) : decodeProfile(input);
+  return p ? { ...p, imported: true } : p;
 }
 
 // Add to the local list unless an identical profile is already there.

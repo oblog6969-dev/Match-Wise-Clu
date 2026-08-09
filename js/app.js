@@ -1,9 +1,32 @@
 // MatchWise — app controller
-import { QUESTIONS } from "./questions.js";
 import { STR, t } from "./i18n.js";
 import { compare, soloSummary } from "./scoring.js";
 import { renderReport, renderSolo } from "./report.js";
+import { renderReportV3, renderSoloV3 } from "./report-v3.js";
 import { saveProfile, fetchProfile, formatCode, normalizeCode, isCloudCode } from "./cloud.js";
+import { MODULES, activeQuestions } from "./questions-v3.js";
+import { compareV3, soloSummaryV3, isV3Answers } from "./scoring-v3.js";
+
+// ---------- v3 routing helpers ----------
+// A profile is "v3" purely by virtue of which item ids appear in its answers
+// — see isV3Answers() in scoring-v3.js. Nothing is stamped on the profile
+// object, so every existing profile (local storage, downloaded .json, share
+// codes, Supabase rows) keeps working with zero migration.
+//
+// Step 3 shipped a bridge that flattened v3 results into v2's report shape
+// so profiles rendered before report-v3.js existed. That bridge is gone now
+// — v3 profiles go straight through renderSoloV3/renderReportV3, which
+// understand the real {value,n,sufficient} shape and draw the attachment
+// chart, methodology panel and quality banner report.js never had.
+//
+// Partner-shared profiles must not expose the itemized answer list — only
+// aggregate results. Self-restored backups (via the "Choose file…" flow)
+// are NOT redacted; that path is documented as personal recovery, not
+// sharing. See MODULES.intimacy note in questions-v3.js for why this had to
+// be true before the intimacy module could ship.
+function redactAnswerList(s) {
+  return { ...s, answers: s.answers.map(a => ({ q: a.q, chosen: null })) };
+}
 
 const $ = s => document.querySelector(s);
 const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
@@ -11,14 +34,18 @@ const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
 let theme = localStorage.getItem(LS.theme) || (prefersDark() ? "dark" : "light");
-let quiz = { name: "", i: 0, answers: {} };
+// quiz.bank: the actual question list being asked, chosen at "Begin" from
+// the intimacy toggle. quiz.intimacy: the toggle's current value.
+let quiz = { name: "", i: 0, answers: {}, bank: [], intimacy: true };
 
 // ---------- persistence ----------
 const getProfiles = () => JSON.parse(localStorage.getItem(LS.profiles) || "[]");
 const saveProfiles = p => localStorage.setItem(LS.profiles, JSON.stringify(p));
 
-// share code: base64url of compact JSON
-const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: 2 }))));
+// share code: base64url of compact JSON. `v` is written for humans reading
+// the payload — nothing in this app parses it back out (see decodeProfile
+// below), so getting it right is a courtesy, not a functional requirement.
+const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: isV3Answers(p.answers) ? 3 : 2 }))));
 function decodeProfile(code) {
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
@@ -32,7 +59,7 @@ function decodeProfile(code) {
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
 function profileToFile(p) {
   return JSON.stringify({
-    app: "MatchWise", version: 2, name: p.name, date: p.date,
+    app: "MatchWise", version: isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
     code: p.code || undefined, answers: p.answers,
   }, null, 2);
 }
@@ -61,7 +88,10 @@ function downloadProfile(p) {
 let lastSolo = null;
 function showSolo(p) {
   lastSolo = p;
-  $("#soloRoot").innerHTML = renderSolo(soloSummary(p), p, lang);
+  const v3 = isV3Answers(p.answers);
+  let s = v3 ? soloSummaryV3(p) : soloSummary(p);
+  if (p.imported) s = redactAnswerList(s);
+  $("#soloRoot").innerHTML = v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
   show("solo");
 }
 
@@ -73,6 +103,17 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh, lang));
   localStorage.setItem(LS.lang, lang);
   renderProfileList();
+  applyIntimacyModuleCopy();
+}
+// Pulled straight from questions-v3.js MODULES rather than duplicated into
+// i18n.js — one source of truth for text that's tightly coupled to the
+// module's gating logic (see the "RESOLVED in step 3" note there).
+function applyIntimacyModuleCopy() {
+  const label = $("#intimacyLabel"), note = $("#intimacyNote"), wrap = $("#intimacyToggle");
+  if (!label || !wrap) return;
+  wrap.hidden = !MODULES.intimacy.ready;
+  label.textContent = MODULES.intimacy.title[lang];
+  note.textContent = MODULES.intimacy.privacy[lang];
 }
 function applyTheme() {
   document.documentElement.dataset.theme = theme;
@@ -135,14 +176,14 @@ function openPreviewPicker() {
 
 // ---------- quiz ----------
 function renderQuestion() {
-  const q = QUESTIONS[quiz.i];
-  $("#progressFill").style.width = (quiz.i / QUESTIONS.length * 100) + "%";
-  $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: QUESTIONS.length });
+  const q = quiz.bank[quiz.i];
+  $("#progressFill").style.width = (quiz.i / quiz.bank.length * 100) + "%";
+  $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: quiz.bank.length });
   $("#backBtn").style.visibility = quiz.i > 0 ? "visible" : "hidden";
 
   const card = $("#questionCard");
   const catName = (STR.appName, q.cat); // category label via CATS in report; show simple tag:
-  let html = `<div class="q-cat">${quiz.i + 1} / ${QUESTIONS.length}</div>
+  let html = `<div class="q-cat">${quiz.i + 1} / ${quiz.bank.length}</div>
     <div class="q-text">${q[lang]}</div>`;
 
   if (q.type === "likert") {
@@ -167,7 +208,7 @@ function renderQuestion() {
 function answer(q, v) {
   quiz.answers[q.id] = v;
   setTimeout(() => {
-    if (quiz.i < QUESTIONS.length - 1) { quiz.i++; renderQuestion(); }
+    if (quiz.i < quiz.bank.length - 1) { quiz.i++; renderQuestion(); }
     else finishQuiz();
   }, 220);
 }
@@ -223,8 +264,12 @@ function generate() {
   const err = $("#compareError");
   if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
   err.textContent = "";
-  const res = compare(pa, pb);
-  $("#reportRoot").innerHTML = renderReport(res, pa, pb, lang);
+  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  if (bothV2) {
+    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
+  } else {
+    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
+  }
   show("report");
 }
 
@@ -240,7 +285,9 @@ document.addEventListener("click", e => {
   if (act === "begin-quiz") {
     const n = $("#nameInput").value.trim();
     if (!n) { $("#nameInput").focus(); return; }
-    quiz = { name: n, i: 0, answers: {} };
+    const intimacyEl = $("#intimacyCheck");
+    const includeIntimacy = intimacyEl ? intimacyEl.checked : true;
+    quiz = { name: n, i: 0, answers: {}, intimacy: includeIntimacy, bank: activeQuestions({ intimacy: includeIntimacy }) };
     show("quiz"); renderQuestion();
   }
 });
@@ -261,11 +308,16 @@ $("#shareBtn").onclick = () => {
 // treated as a legacy v2 share code so old links keep working offline.
 // Returns a profile, or null when the code simply doesn't exist.
 // Throws only when the network fails, so callers can say so plainly.
+//
+// Every profile that arrives via a typed code is tagged `imported: true` —
+// this is the partner-sharing path (as opposed to "Choose file…", which is
+// documented as self-recovery of your own backup and is deliberately left
+// untagged). showSolo() uses the tag to hide the itemized answer list.
 async function resolveCode(raw) {
   const input = String(raw || "").trim();
   if (!input) return null;
-  if (isCloudCode(input)) return await fetchProfile(input);
-  return decodeProfile(input);
+  const p = isCloudCode(input) ? await fetchProfile(input) : decodeProfile(input);
+  return p ? { ...p, imported: true } : p;
 }
 
 // Add to the local list unless an identical profile is already there.

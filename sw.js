@@ -1,7 +1,19 @@
 // MatchWise service worker — offline cache
-const CACHE = "matchwise-v2";
+//
+// IMPORTANT: bump CACHE on every release that changes any file below.
+// The activate handler deletes every cache whose key !== CACHE, so a new
+// name is what actually evicts the old files. Leaving the name unchanged
+// means already-installed phones keep serving the previous version forever,
+// because the fetch handler answers from cache first and never revalidates.
+//
+// Equally important: every file the app imports must be listed in ASSETS.
+// Anything missing isn't precached, so offline it falls through to a network
+// fetch that can't succeed — and since js/app.js imports the v3 modules at
+// load time, one missing entry breaks the whole app, not just one feature.
+const CACHE = "matchwise-v3";
 const ASSETS = ["./", "index.html", "style.css", "manifest.json",
-  "js/app.js", "js/cloud.js", "js/i18n.js", "js/questions.js", "js/scoring.js", "js/report.js"];
+  "js/app.js", "js/cloud.js", "js/i18n.js", "js/questions.js", "js/scoring.js", "js/report.js",
+  "js/questions-v3.js", "js/scoring-v3.js", "js/report-v3.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

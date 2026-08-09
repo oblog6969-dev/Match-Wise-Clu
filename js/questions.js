@@ -55,7 +55,7 @@ export const QUESTIONS = [
   en:"During a heated disagreement, I usually:",
   ar:"أثناء خلاف محتدم، عادة ما:",
   opts:[
-    { v:7, en:"Stay calm and keep discussing", ar:"أبقى هادئًا وأواصل النقاش" },
+    { v:7, en:"Stay calm and keep discussing", ar:"أبقى شخصًا هادئًا وأواصل النقاش" },
     { v:5, en:"Ask for a break, then come back to it", ar:"أطلب استراحة ثم أعود للموضوع" },
     { v:3, en:"Get loud, then cool down quickly", ar:"يرتفع صوتي ثم أهدأ سريعًا" },
     { v:1, en:"Go silent and withdraw", ar:"أصمت وأنسحب" } ] },
@@ -211,7 +211,7 @@ export const QUESTIONS = [
   ar:"حصل شريكك على عرض عمل ممتاز في مدينة أخرى. أول ما يخطر لك:",
   opts:[
     { v:7, en:"An exciting adventure — let's plan it", ar:"مغامرة مشوّقة — لنخطط لها" },
-    { v:5, en:"Open to it, but genuinely worried", ar:"منفتح على الفكرة لكنني قلق فعلًا" },
+    { v:5, en:"Open to it, but genuinely worried", ar:"أنا شخص منفتح على الفكرة لكنني أشعر بالقلق فعلاً" },
     { v:2, en:"They should refuse — stability comes first", ar:"يجب أن يرفض — الاستقرار أولًا" } ] },
 { id:"g2", cat:"growth", type:"mcq", mt:"sim", w:2,
   en:"Your partner wants to leave a stable job to start their own business. You:",

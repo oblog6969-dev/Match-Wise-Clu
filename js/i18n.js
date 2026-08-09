@@ -87,6 +87,18 @@ export const STR = {
   levelHigh:    { en: "Strong foundation", ar: "أساس قوي" },
   levelMid:     { en: "Promising — needs conversation", ar: "واعد — يحتاج حوارًا" },
   levelLow:     { en: "Significant differences to discuss", ar: "اختلافات جوهرية تستحق النقاش" },
+  // v3 additions — see js/report-v3.js. Kept in the same shared i18n table
+  // since both v2 and v3 screens read through the same t() function; adding
+  // keys here is additive and does not touch any v2 string above.
+  v3Attachment:      { en: "Attachment Style", ar: "نمط التعلّق" },
+  v3AttachmentNote:  { en: "How you tend to seek or guard closeness in relationships — estimated from a short questionnaire, not a clinical assessment.", ar: "كيف تميل إلى طلب القرب أو حمايته في العلاقات — تقدير من استبيان قصير، وليس تقييمًا سريريًا." },
+  v3Methodology:     { en: "How this was scored", ar: "كيف حُسبت هذه النتيجة" },
+  v3MethodItems:     { en: "This report draws on {a} questions, including {b} pairs asked twice in different words to check consistency.", ar: "يعتمد هذا التقرير على {a} سؤالًا، من بينها {b} أزواج أسئلة طُرحت مرتين بصيغ مختلفة للتحقق من الاتساق." },
+  v3MethodReliabilityIntro: { en: "Some sections are modeled after published psychology questionnaires. Their reliability (how consistently they measure, on a 0–1 scale) has been studied in those original questionnaires — not yet on MatchWise's own wording:", ar: "بعض الأقسام مبنية على استبيانات نفسية منشورة. تمت دراسة موثوقيتها (مدى اتساق قياسها، على مقياس ٠–١) في تلك الاستبيانات الأصلية — وليس بعد على صياغة ماتش وايز الخاصة:" },
+  v3MethodWeights:   { en: "Question weights (how much each answer counts) were set by editorial judgment, not derived from data. Treat category percentages as organized opinion, not measurement.", ar: "أوزان الأسئلة (مدى تأثير كل إجابة) حُددت بحكم تحريري، لا مستمدة من بيانات. تعامل مع نسب المحاور كرأي منظم، لا كقياس دقيق." },
+  v3MethodSimilarity:{ en: "Research note: being similar to your partner does not, by itself, predict a happy relationship. This report maps where you differ so you can talk about it — not to score you against each other.", ar: "ملاحظة بحثية: التشابه مع شريكك لا يتنبأ وحده بعلاقة سعيدة. هذا التقرير يرسم أماكن اختلافكما لتتحدثا عنها — لا ليقيّم أحدكما مقابل الآخر." },
+  v3IndexTitle:      { en: "Alignment Index", ar: "مؤشر الانسجام" },
+  v3NotAPrediction:  { en: "This is a starting point for conversation, not a prediction of your relationship's success.", ar: "هذه نقطة بداية للحوار، وليست تنبؤًا بنجاح علاقتكما." },
 };
 
 export const CATS = {

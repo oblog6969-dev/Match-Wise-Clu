@@ -16,34 +16,81 @@ After finishing the assessment, press **Download my profile file** to save a `.j
 
 If you lose your phone, clear your browser, or switch devices, open the app and use **Choose file…** on the home screen to upload that `.json` back. It goes straight to your profile preview, where you can print it or save it as PDF again. Saved profiles also have **Preview** and **⤓** buttons for the same thing without re-uploading.
 
-The preview screen shows your own results alone — no partner needed: where you lean in each of the 12 areas, your Big Five estimate, your love language, any answers that contradicted each other, and a full list of every question with the answer you gave. Printing includes that full answer list even though it's collapsed on screen.
+The preview screen shows your own results alone — no partner needed: where you lean in each area, your Big Five estimate, your attachment style, your love language, any answers that contradicted each other, and a full list of every question with the answer you gave. Printing includes that full answer list even though it's collapsed on screen.
 
 ## How it works
 
-Each person answers 47 questions across 12 areas, then gets a share code. The partner pastes that code into their app and the compatibility report is generated locally. Nothing is uploaded anywhere.
+Each person answers 80 questions (77 if the optional intimacy section is skipped), then gets a share code. The partner pastes that code into their app and the report is generated locally. Nothing is uploaded anywhere.
 
 Scoring is not a simple average. Each question is scored one of three ways: similarity (closer answers are better — values, children, lifestyle), complementarity (moderate difference is healthy — who repairs after a fight), or tolerance range (difference is fine within a band, penalized beyond it — spending, social energy). Questions about children, religion and relocation are flagged as deal-breakers: a large gap raises an explicit alert and caps the headline score regardless of everything else.
 
-Six questions are consistency pairs — the same trait asked twice in different words. Contradictions lower the confidence percentage rather than the compatibility score, so the report tells you how much to trust itself.
+Twelve consistency pairs ask the same trait twice in different words. Contradictions lower the confidence percentage rather than the compatibility score, so the report tells you how much to trust itself.
 
-The most useful output is the "Topics to Discuss" section, not the number. The report says so explicitly.
+The most useful output is the "Topics to Discuss" section, not the number — so the report puts it above the number.
+
+## What the headline number is and isn't
+
+The headline figure is called the **Alignment Index**, not a compatibility score, and that wording is deliberate.
+
+Actual similarity between partners does not predict relationship satisfaction in established couples. Montoya, Horton & Kirchner's meta-analysis (460 effect sizes, 313 studies) found the effect of actual similarity in existing relationships was not significant, and Joel et al.'s machine-learning analysis of 43 longitudinal datasets (11,196 couples) found personality and traits added essentially nothing once relationship-specific judgments were accounted for.
+
+So the index maps *where two people differ*, which is useful for deciding what to talk about. It does not predict whether a relationship will work. The report says this on the screen, not just here.
+
+## Response quality
+
+Four items are absolute statements almost nobody can honestly endorse ("I have never been irritated by someone close to me"). Strong agreement across them suggests answering to look good rather than to be accurate. One further item simply asks the person to pick a specific number, to check attention.
+
+These only lower the confidence percentage — capped at 15 points — and never touch the compatibility score. Failing the attention check is flagged in the report but costs nothing.
+
+## Privacy
+
+Answers stay on the device. Sharing a code sends the profile to a Supabase row that expires after 6 months; row-level security is on with no policies, so the publishable key can only call two functions and cannot list or enumerate anything.
+
+A partner who opens your profile by share code sees **aggregate results only** — the itemized question-by-question answer list is hidden for imported profiles. Your own profile, and a backup you restore from your own `.json` file, still show everything.
 
 ## Categories
 
-Personality (Big Five), Communication, Conflict & Repair, Money, Lifestyle, Family & Children, Values & Religion, Career & Ambition, Trust & Boundaries, Emotional Needs, Adaptability & Growth, Future Planning.
+15 scored areas: Personality (Big Five), Communication, Conflict & Repair, Money, Lifestyle, Family & Children, Values & Religion, Career & Ambition, Trust & Boundaries, Emotional Needs, Adaptability & Growth, Appreciation, Future Planning, Fairness at Home, and Physical Intimacy (optional).
 
-Adaptability & Growth is measured indirectly through scenarios — reaction to a partner's job offer in another city, support for a risky business venture, willingness to try unfamiliar things, and whether small kindnesses get noticed and thanked.
+Attachment is measured too, but reported per person rather than as a couple score, because that is how the evidence supports it.
+
+Adaptability & Growth is measured indirectly through scenarios — reaction to a partner's job offer in another city, support for a risky business venture, willingness to try unfamiliar things.
+
+Appreciation and Fairness at Home are their own categories on purpose: feeling appreciated and perceiving the division of labour as *fair* (not necessarily equal) both track relationship satisfaction more closely than the underlying facts do.
+
+Physical Intimacy is opt-in. Skipping it costs no confidence, and the toggle states plainly that a partner never sees individual answers.
+
+## Where the questions come from
+
+The attachment section follows the two-dimension model of the ECR-S (Wei et al., 2007) — anxiety and avoidance — written in that style, not reproducing its items. The Big Five top-ups follow the BFI-2-XS structure (Soto & John, 2017). The response-quality items are BIDR-style (Hart et al., 2015).
+
+The report's "How this was scored" panel shows the published reliability of those original instruments, clearly labelled as *reference only*: MatchWise's own wording is adapted and has not been separately validated.
 
 ## Files
 
-`index.html`, `style.css`, and `js/` (app, questions, scoring, report, i18n) are the source. `manifest.json` and `sw.js` make it installable and offline-capable. `MatchWise-preview.html` is generated — run `node build-single.js` to rebuild it after changing any source file. `Build-MatchWise-v2.md` is the design spec.
+`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — which layer on top without modifying the originals.
+
+`manifest.json` and `sw.js` make it installable and offline-capable. `MatchWise-preview.html` is generated. `Build-MatchWise-v2.md` and `Build-MatchWise-v3.md` are the design specs; the v3 spec records which research claims were checked and what the evidence said.
+
+### Version compatibility
+
+A profile is identified as v2 or v3 purely by which question ids appear in its answers — nothing is stamped on the stored file, so existing profiles, share codes and `.json` backups keep working with no migration.
+
+A v2 profile still renders through the original v2 report, untouched. Comparing a v2 profile against a v3 one scores only the questions both answered, lowers confidence, and says so on screen — and the older profile is not penalised for "skipping" questions that did not exist when it was taken.
 
 ## Deploying
 
 From this folder: `npx vercel --prod`. Or push to GitHub and connect the repo to Vercel. It's a static site — no build step, no environment variables.
 
-Rebuild the single file first if you changed anything: `node build-single.js` (it self-checks and fails loudly if the bundle is broken).
+Rebuild the single file first if you changed anything: `node build-single.js`. It self-checks and fails loudly if the bundle is broken, if any file in `js/` is missing from the service worker's precache list, or if `sw.js`'s cache name wasn't bumped for the release.
+
+**Bump `CACHE` in `sw.js` on every release that changes a cached file.** Installed phones serve from cache first; if the name doesn't change, they keep the old version indefinitely.
 
 ## Limitations
 
 This is a conversation tool, not a validated psychometric instrument. Self-report questionnaires capture how people describe themselves, which is not always how they behave. Treat the score as a starting point for talking, not a prediction.
+
+Two limits worth naming specifically:
+
+- **Question weights are editorial judgment**, not derived from data. Category percentages are organized opinion, not measurement.
+- **Nothing here has been calibrated against real outcomes.** Validating the scoring would need roughly 300 opt-in profiles paired with a relationship-satisfaction measure, then re-deriving the weights by regression and checking honestly whether the Alignment Index correlates with satisfaction at all. Until that happens, this section stays as it is.
