@@ -74,6 +74,31 @@ label{font-weight:600;font-size:.9rem}
 .paste-box{margin:14px 0}
 .paste-box summary{cursor:pointer;color:var(--accent2);font-weight:600}
 
+/* Two side-by-side secondary actions; stack on narrow phones */
+.row.two-up{gap:10px;margin:0}
+.row.two-up .btn{flex:1 1 180px;margin-top:10px}
+
+/* Share code — the one string the user has to read and retype, so it gets
+   a monospaced face, wide letter-spacing and no ambiguity between 0 and O. */
+.code-label{display:block;margin-top:8px;color:var(--muted);text-align:center}
+.code-display{
+  width:100%;text-align:center;border:1px dashed var(--accent);
+  border-radius:14px;background:color-mix(in srgb,var(--accent) 6%,var(--card));
+  color:var(--text);padding:18px 10px;margin:8px 0 4px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:1.7rem;font-weight:700;letter-spacing:.14em;
+}
+.code-input{
+  text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:1.15rem;letter-spacing:.12em;text-transform:uppercase;
+}
+.code-chip{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.78rem;letter-spacing:.06em;color:var(--accent2);
+}
+hr.soft{border:none;border-top:1px solid var(--line);margin:20px 0 14px}
+[dir="rtl"] .code-display,[dir="rtl"] .code-input{direction:ltr}
+
 /* Progress */
 .progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 2px 16px}
 .progress-bar{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}

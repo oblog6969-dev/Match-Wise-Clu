@@ -1,0 +1,493 @@
+# Build MatchWise Lite v1.0
+
+You are a senior full-stack software engineer, UX designer, product designer, psychologist assistant, and AI architect.
+
+Your task is to build a production-quality offline web application called **MatchWise Lite**.
+
+This is NOT a simple personality quiz.
+
+It is a relationship compatibility assessment.
+
+The application must run entirely inside the browser without requiring any backend, database, login, API, or internet connection.
+
+Everything should be contained in a single folder.
+
+---
+
+# Technology
+
+Use only:
+
+* HTML5
+* CSS3
+* Vanilla JavaScript (ES6)
+
+No React.
+
+No Vue.
+
+No Angular.
+
+No Bootstrap.
+
+No jQuery.
+
+No external libraries.
+
+No CDN dependencies.
+
+Everything must work completely offline.
+
+---
+
+# Design
+
+Modern.
+
+Minimal.
+
+Premium.
+
+Apple-like UI.
+
+Rounded cards.
+
+Soft shadows.
+
+Large typography.
+
+Mobile-first.
+
+Responsive.
+
+Dark mode.
+
+Light mode.
+
+Arabic RTL support.
+
+English LTR support.
+
+Professional animations.
+
+Progress indicator.
+
+Smooth transitions.
+
+---
+
+# Languages
+
+The application must support:
+
+English
+
+Arabic
+
+Every question must exist in both languages.
+
+The language can be changed at any time.
+
+---
+
+# Application Flow
+
+Home
+
+↓
+
+Choose Language
+
+↓
+
+Choose
+
+• Start New Assessment
+
+• Compare Saved Profile
+
+↓
+
+Person A Assessment
+
+↓
+
+Export Profile
+
+↓
+
+Person B Assessment
+
+↓
+
+Export Profile
+
+↓
+
+Load Both Profiles
+
+↓
+
+Generate Compatibility Report
+
+---
+
+# Profiles
+
+Each completed assessment becomes a reusable profile.
+
+The profile should contain
+
+* random profile id
+* creation date
+* application version
+* answers
+* calculated personality traits
+* calculated values
+* assessment confidence
+
+Profiles are exported as encrypted JSON files.
+
+Users never need to retake the assessment unless they want to update their profile.
+
+---
+
+# Assessment
+
+Create approximately 60 questions.
+
+The questions must measure
+
+Personality
+
+Communication
+
+Conflict
+
+Money
+
+Lifestyle
+
+Marriage
+
+Family
+
+Children
+
+Religion
+
+Career
+
+Decision making
+
+Trust
+
+Boundaries
+
+Emotional intelligence
+
+Affection
+
+Future planning
+
+Use different question types
+
+1.
+
+7-point Likert scale
+
+Strongly disagree
+
+↓
+
+Strongly agree
+
+2.
+
+Multiple choice
+
+3.
+
+Scenario questions
+
+4.
+
+Priority ranking
+
+Do NOT make every question the same.
+
+---
+
+# Adaptive Question Engine
+
+Questions must have metadata.
+
+Each question has
+
+category
+
+weight
+
+trait measured
+
+follow-up ids
+
+importance
+
+The engine selects follow-up questions based on previous answers.
+
+Different users should receive different questions.
+
+Maximum questions
+
+70
+
+Minimum
+
+45
+
+---
+
+# Question Database
+
+Questions must be stored in a separate JSON file.
+
+Each question contains
+
+id
+
+Arabic
+
+English
+
+category
+
+weight
+
+trait
+
+followups
+
+type
+
+---
+
+# Personality Engine
+
+Estimate
+
+Big Five
+
+MBTI tendency
+
+Attachment style
+
+Communication style
+
+Conflict style
+
+Decision style
+
+Love language tendency
+
+Generate confidence percentages.
+
+Never claim certainty.
+
+---
+
+# Compatibility Engine
+
+Compare two exported profiles.
+
+Generate
+
+Overall Compatibility Index
+
+Category scores
+
+Radar chart using SVG (no external libraries)
+
+Strengths
+
+Potential challenges
+
+Topics to discuss
+
+Deal-breaker alerts
+
+Growth opportunities
+
+Confidence score
+
+Never simply average answers.
+
+Some questions require similarity.
+
+Some require complementarity.
+
+Some are deal-breakers.
+
+---
+
+# Report
+
+Professional.
+
+Looks like a psychological assessment.
+
+Sections
+
+Executive Summary
+
+Compatibility Index
+
+Personality Dynamics
+
+Communication
+
+Conflict
+
+Money
+
+Lifestyle
+
+Family
+
+Marriage
+
+Emotional Needs
+
+Strengths
+
+Challenges
+
+Suggested Conversations
+
+Recommendations
+
+Appendix
+
+All reports must be printable.
+
+---
+
+# Dashboard
+
+Simple dashboard
+
+Saved profiles
+
+Import profile
+
+Delete profile
+
+Compare profiles
+
+Export PDF (browser print friendly)
+
+---
+
+# Charts
+
+Without external libraries.
+
+Use SVG.
+
+Create
+
+Radar chart
+
+Bar charts
+
+Progress circles
+
+---
+
+# Privacy
+
+Everything stays local.
+
+No internet.
+
+No tracking.
+
+No analytics.
+
+No cookies.
+
+---
+
+# Code Quality
+
+Separate
+
+index.html
+
+style.css
+
+script.js
+
+questions.json
+
+traits.js
+
+compatibility.js
+
+utils.js
+
+Organized.
+
+Documented.
+
+Readable.
+
+No duplicated code.
+
+---
+
+# UI Quality
+
+Premium.
+
+Smooth.
+
+Professional.
+
+Looks like a commercial SaaS.
+
+No ugly forms.
+
+No browser default styling.
+
+---
+
+# Deliverables
+
+Generate every file.
+
+Generate complete code.
+
+Generate complete questions.
+
+Generate complete scoring engine.
+
+Generate sample profiles.
+
+Generate icons using SVG.
+
+Generate README.
+
+The project should work immediately by opening index.html.
+
+No additional setup.
+
+No installation.
+
+No package manager.
+
+No backend.
+
+Everything must work offline.
+
+The final application should feel like a polished product instead of a demo.

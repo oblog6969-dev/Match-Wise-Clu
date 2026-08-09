@@ -85,6 +85,31 @@ label{font-weight:600;font-size:.9rem}
 .paste-box{margin:14px 0}
 .paste-box summary{cursor:pointer;color:var(--accent2);font-weight:600}
 
+/* Two side-by-side secondary actions; stack on narrow phones */
+.row.two-up{gap:10px;margin:0}
+.row.two-up .btn{flex:1 1 180px;margin-top:10px}
+
+/* Share code — the one string the user has to read and retype, so it gets
+   a monospaced face, wide letter-spacing and no ambiguity between 0 and O. */
+.code-label{display:block;margin-top:8px;color:var(--muted);text-align:center}
+.code-display{
+  width:100%;text-align:center;border:1px dashed var(--accent);
+  border-radius:14px;background:color-mix(in srgb,var(--accent) 6%,var(--card));
+  color:var(--text);padding:18px 10px;margin:8px 0 4px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:1.7rem;font-weight:700;letter-spacing:.14em;
+}
+.code-input{
+  text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:1.15rem;letter-spacing:.12em;text-transform:uppercase;
+}
+.code-chip{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.78rem;letter-spacing:.06em;color:var(--accent2);
+}
+hr.soft{border:none;border-top:1px solid var(--line);margin:20px 0 14px}
+[dir="rtl"] .code-display,[dir="rtl"] .code-input{direction:ltr}
+
 /* Progress */
 .progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 2px 16px}
 .progress-bar{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
@@ -212,7 +237,10 @@ ul.clean li:last-child{border:none}
       <h1 data-i18n="heroTitle">How well do you grow together?</h1>
       <p class="muted" data-i18n="heroSub">A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.</p>
       <button class="btn primary big" data-action="start" data-i18n="startBtn">Start my assessment</button>
-      <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
+      <div class="row two-up">
+        <button class="btn ghost" data-action="go-preview" data-i18n="previewHomeBtn">Preview my results</button>
+        <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
+      </div>
     </div>
     <div class="card" id="savedProfilesCard">
       <h3 data-i18n="savedProfiles">Saved profiles</h3>
@@ -226,6 +254,34 @@ ul.clean li:last-child{border:none}
       <p id="fileMsg" class="error small"></p>
     </div>
     <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
+  </section>
+
+  <!-- PREVIEW PICKER -->
+  <section class="screen" id="screen-preview">
+    <div class="card">
+      <h2 data-i18n="previewTitle">Preview my results</h2>
+      <p class="muted small" data-i18n="previewSub">See your own profile on its own — no partner needed.</p>
+
+      <div id="previewLocal">
+        <label data-i18n="previewPick">A profile saved on this device</label>
+        <select id="selectPreview"></select>
+        <button class="btn primary big" id="previewOpenBtn" data-i18n="previewOpen">Open preview</button>
+      </div>
+      <p id="previewEmpty" class="muted small" hidden data-i18n="previewNone">Nothing saved on this device yet.</p>
+
+      <hr class="soft">
+      <label data-i18n="previewByCode">Or open results by test code</label>
+      <input type="text" id="previewCode" class="code-input" maxlength="12"
+             autocomplete="off" autocapitalize="characters" spellcheck="false"
+             data-i18n-ph="pastePh" placeholder="e.g. ABCD-2345">
+      <button class="btn ghost big" id="previewCodeBtn" data-i18n="previewOpen">Open preview</button>
+
+      <hr class="soft">
+      <button class="btn ghost" id="previewUploadBtn" data-i18n="previewFile">Or upload a profile file</button>
+
+      <p id="previewError" class="error small"></p>
+      <button class="btn ghost" data-action="go-home" data-i18n="homeBtn">Home</button>
+    </div>
   </section>
 
   <!-- NAME -->
@@ -255,12 +311,19 @@ ul.clean li:last-child{border:none}
     <div class="card center">
       <div class="big-emoji">✅</div>
       <h2 data-i18n="doneTitle">Profile created</h2>
-      <p class="muted" data-i18n="doneSub">Share this code with your partner, or paste theirs to see your compatibility report.</p>
-      <textarea id="shareCode" readonly rows="4"></textarea>
+      <p class="muted" data-i18n="doneSub">Send this code to your partner.</p>
+
+      <label class="code-label" data-i18n="yourCode">Your test code</label>
+      <input id="shareCode" class="code-display" readonly value="">
+      <p class="muted small" id="codeLife" data-i18n="codeLife">The code works for 6 months.</p>
+      <p class="error small" id="codeError" hidden></p>
+      <button class="btn ghost" id="codeRetryBtn" hidden data-i18n="codeRetry">Try again</button>
+
       <div class="row">
         <button class="btn primary" id="copyBtn" data-i18n="copyBtn">Copy code</button>
         <button class="btn ghost" id="shareBtn" data-i18n="shareBtn">Share…</button>
       </div>
+      <button class="btn ghost big" id="donePreviewBtn" data-i18n="previewHomeBtn">Preview my results</button>
       <button class="btn ghost big" id="downloadBtn" data-i18n="downloadBtn">Download my profile file</button>
       <button class="btn primary big" data-action="go-compare" data-i18n="toCompareBtn">Compare now</button>
     </div>
@@ -278,11 +341,13 @@ ul.clean li:last-child{border:none}
         <label data-i18n="personB">Person B</label>
         <select id="selectB"></select>
       </div>
-      <details class="paste-box">
-        <summary data-i18n="pasteSummary">Paste a partner's share code</summary>
-        <textarea id="importCode" rows="4" data-i18n-ph="pastePh" placeholder="Paste code here"></textarea>
-        <button class="btn ghost" id="importBtn" data-i18n="importBtn">Import profile</button>
-      </details>
+      <div class="paste-box">
+        <label data-i18n="pasteSummary">Add your partner by test code</label>
+        <input type="text" id="importCode" class="code-input" maxlength="12"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"
+               data-i18n-ph="pastePh" placeholder="e.g. ABCD-2345">
+        <button class="btn ghost" id="importBtn" data-i18n="importBtn">Load partner's results</button>
+      </div>
       <button class="btn primary big" id="generateBtn" data-i18n="generateBtn">Generate report</button>
       <p id="compareError" class="error small"></p>
     </div>
@@ -572,9 +637,10 @@ const STR = {
   heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — كل شيء يبقى على هاتفك." },
   startBtn:     { en: "Start my assessment", ar: "ابدأ تقييمي" },
   compareBtn:   { en: "Compare two profiles", ar: "قارن ملفين" },
+  previewHomeBtn:{ en: "Preview my results", ar: "معاينة نتائجي" },
   savedProfiles:{ en: "Saved profiles", ar: "الملفات المحفوظة" },
   noProfiles:   { en: "No profiles yet.", ar: "لا توجد ملفات بعد." },
-  privacyNote:  { en: "🔒 100% private — answers never leave your device.", ar: "🔒 خصوصية كاملة — إجاباتك لا تغادر جهازك أبدًا." },
+  privacyNote:  { en: "🔒 No accounts, no tracking. Results are stored under a code you choose to share, and deleted after 6 months.", ar: "🔒 بلا حسابات ولا تتبع. تُحفظ النتائج تحت رمز تختار مشاركته، وتُحذف بعد ٦ أشهر." },
   whoTitle:     { en: "Who is taking the assessment?", ar: "من سيقوم بالتقييم؟" },
   namePh:       { en: "Your first name", ar: "اسمك الأول" },
   whoNote:      { en: "Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.", ar: "أجب بصدق لا بمثالية. لا توجد إجابات صحيحة — الإجابات المتناقضة تقلل موثوقية نتيجتك." },
@@ -582,7 +648,12 @@ const STR = {
   backBtn:      { en: "Back", ar: "رجوع" },
   qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },
   doneTitle:    { en: "Profile created", ar: "تم إنشاء الملف" },
-  doneSub:      { en: "Share this code with your partner, or paste theirs to see your compatibility report.", ar: "شارك هذا الرمز مع شريكك، أو الصق رمزه لرؤية تقرير التوافق." },
+  doneSub:      { en: "Send this code to your partner. When they enter it, you both see the compatibility report — no files to send.", ar: "أرسل هذا الرمز إلى شريكك. عند إدخاله ترون معًا تقرير التوافق — بلا ملفات تُرسل." },
+  yourCode:     { en: "Your test code", ar: "رمز اختبارك" },
+  codeSaving:   { en: "Saving…", ar: "جارٍ الحفظ…" },
+  codeOffline:  { en: "Couldn't reach the server, so no short code was created. Your profile is saved on this device — download the file below and share that instead, or open the app again later to get a code.", ar: "تعذّر الوصول إلى الخادم، لذا لم يُنشأ رمز قصير. ملفك محفوظ على هذا الجهاز — نزّل الملف أدناه وشاركه بدلًا من ذلك، أو افتح التطبيق لاحقًا للحصول على رمز." },
+  codeRetry:    { en: "Try again", ar: "أعد المحاولة" },
+  codeLife:     { en: "The code works for 6 months.", ar: "الرمز صالح لمدة ٦ أشهر." },
   copyBtn:      { en: "Copy code", ar: "نسخ الرمز" },
   copied:       { en: "Copied!", ar: "تم النسخ!" },
   shareBtn:     { en: "Share…", ar: "مشاركة…" },
@@ -590,11 +661,13 @@ const STR = {
   compareTitle: { en: "Compare two profiles", ar: "قارن ملفين" },
   personA:      { en: "Person A", ar: "الشخص أ" },
   personB:      { en: "Person B", ar: "الشخص ب" },
-  pasteSummary: { en: "Paste a partner's share code", ar: "الصق رمز مشاركة الشريك" },
-  pastePh:      { en: "Paste code here", ar: "الصق الرمز هنا" },
-  importBtn:    { en: "Import profile", ar: "استيراد الملف" },
-  importOk:     { en: "Profile imported.", ar: "تم استيراد الملف." },
-  importBad:    { en: "Invalid code. Check and try again.", ar: "رمز غير صالح. تحقق وحاول مجددًا." },
+  pasteSummary: { en: "Add your partner by test code", ar: "أضف شريكك برمز الاختبار" },
+  pastePh:      { en: "e.g. ABCD-2345", ar: "مثال: ABCD-2345" },
+  importBtn:    { en: "Load partner's results", ar: "تحميل نتائج الشريك" },
+  importOk:     { en: "Profile loaded.", ar: "تم تحميل الملف." },
+  importBad:    { en: "That code doesn't match any results. Check it and try again — codes expire after 6 months.", ar: "هذا الرمز لا يطابق أي نتائج. تحقق منه وحاول مجددًا — تنتهي صلاحية الرموز بعد ٦ أشهر." },
+  importBusy:   { en: "Looking it up…", ar: "جارٍ البحث…" },
+  netError:     { en: "Can't reach the server. Check your connection and try again.", ar: "تعذّر الوصول إلى الخادم. تحقق من اتصالك وحاول مجددًا." },
   needTwo:      { en: "Select two different profiles.", ar: "اختر ملفين مختلفين." },
   generateBtn:  { en: "Generate report", ar: "إنشاء التقرير" },
   printBtn:     { en: "Print / Save PDF", ar: "طباعة / حفظ PDF" },
@@ -622,6 +695,14 @@ const STR = {
   uploadBtn:    { en: "Choose file…", ar: "اختر ملفًا…" },
   fileSaved:    { en: "File downloaded. Keep it safe — you can upload it any time to see this report again.", ar: "تم تنزيل الملف. احتفظ به — يمكنك رفعه في أي وقت لرؤية هذا التقرير مجددًا." },
   fileBad:      { en: "That file isn't a valid MatchWise profile.", ar: "هذا الملف ليس ملف ماتش وايز صالحًا." },
+  // Preview picker
+  previewTitle: { en: "Preview my results", ar: "معاينة نتائجي" },
+  previewSub:   { en: "See your own profile on its own — no partner needed.", ar: "اطّلع على ملفك وحدك — بلا حاجة إلى شريك." },
+  previewPick:  { en: "A profile saved on this device", ar: "ملف محفوظ على هذا الجهاز" },
+  previewOpen:  { en: "Open preview", ar: "افتح المعاينة" },
+  previewByCode:{ en: "Or open results by test code", ar: "أو افتح النتائج برمز الاختبار" },
+  previewNone:  { en: "Nothing saved on this device yet. Enter a test code below, upload a profile file, or take the assessment.", ar: "لا يوجد شيء محفوظ على هذا الجهاز بعد. أدخل رمز اختبار أدناه، أو ارفع ملفًا، أو ابدأ التقييم." },
+  previewFile:  { en: "Or upload a profile file", ar: "أو ارفع ملف ملف شخصي" },
   // Solo profile preview
   previewBtn:   { en: "Preview", ar: "معاينة" },
   sTitle:       { en: "Profile Preview", ar: "معاينة الملف" },
@@ -659,6 +740,104 @@ function t(key, lang, vars) {
   let s = (STR[key] && STR[key][lang]) || key;
   if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]);
   return s;
+}
+
+
+// MatchWise — cloud sharing.
+//
+// A finished assessment is stored server-side and reduced to an 8-character
+// code the partner can type in. No SDK: two plain fetch calls against
+// Supabase's PostgREST RPC endpoints, so the app keeps its zero-dependency,
+// no-build-step rule.
+//
+// The key below is the *publishable* key. It is meant to sit in client code.
+// The `profiles` table has row-level security enabled with no policies, so
+// this key cannot read, list, or delete anything directly — it can only call
+// the two functions granted to it. See supabase/schema.sql.
+
+const SUPABASE_URL = "https://xtrtilekegrzatnmgyul.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Q0HMULAWDVVKtV7J6pbw_w_q4H42HYQ";
+
+const RPC = fn => `${SUPABASE_URL}/rest/v1/rpc/${fn}`;
+const HEADERS = {
+  "apikey": SUPABASE_KEY,
+  "Authorization": `Bearer ${SUPABASE_KEY}`,
+  "Content-Type": "application/json",
+};
+
+// Codes use a 31-symbol alphabet with 0/O/1/I/L removed so they survive being
+// read aloud or retyped from a screenshot.
+const CODE_LEN = 8;
+
+/** "bpbg kzbd" / "bpbg-kzbd" -> "BPBGKZBD" */
+function normalizeCode(code) {
+  return String(code || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+/** "BPBGKZBD" -> "BPBG-KZBD" (display only; input accepts either) */
+function formatCode(code) {
+  const c = normalizeCode(code);
+  return c.length === CODE_LEN ? c.slice(0, 4) + "-" + c.slice(4) : c;
+}
+
+function isCloudCode(code) {
+  return normalizeCode(code).length === CODE_LEN;
+}
+
+async function rpc(fn, body, timeoutMs = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(RPC(fn), {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`${fn} failed (${res.status}) ${detail}`.trim());
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Store a finished profile. Resolves to the share code.
+ * Throws on network failure — callers fall back to the offline code.
+ */
+async function saveProfile(profile, lang = "en") {
+  const code = await rpc("create_profile", {
+    p_name: String(profile.name).slice(0, 60),
+    p_lang: lang === "ar" ? "ar" : "en",
+    p_answers: profile.answers,
+  });
+  return normalizeCode(code);
+}
+
+/**
+ * Look up a shared profile. Resolves to a profile object, or null when the
+ * code is unknown or older than six months. Throws only on network failure,
+ * so the UI can tell "wrong code" apart from "you're offline".
+ */
+async function fetchProfile(code) {
+  const wanted = normalizeCode(code);
+  if (wanted.length !== CODE_LEN) return null;
+
+  const rows = await rpc("get_profile", { p_code: wanted });
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  if (!row || !row.answers) return null;
+
+  return {
+    id: "cloud_" + row.code,
+    code: row.code,
+    name: row.name,
+    date: row.created_at || new Date().toISOString(),
+    expires: row.expires_at || null,
+    answers: row.answers,
+  };
 }
 
 
@@ -1026,7 +1205,8 @@ function decodeProfile(code) {
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
 function profileToFile(p) {
   return JSON.stringify({
-    app: "MatchWise", version: 2, name: p.name, date: p.date, answers: p.answers,
+    app: "MatchWise", version: 2, name: p.name, date: p.date,
+    code: p.code || undefined, answers: p.answers,
   }, null, 2);
 }
 function fileToProfile(text) {
@@ -1035,7 +1215,8 @@ function fileToProfile(text) {
     // accept our own file format, or a bare {name, answers}
     const name = o.name ?? o.n, answers = o.answers ?? o.a;
     if (!name || !answers || typeof answers !== "object") return null;
-    return { id: "f_" + Date.now(), name, date: o.date || new Date().toISOString(), answers };
+    return { id: "f_" + Date.now(), name, date: o.date || new Date().toISOString(),
+             code: o.code || null, answers };
   } catch { return null; }
 }
 function downloadProfile(p) {
@@ -1087,7 +1268,8 @@ function renderProfileList() {
   for (const p of list) {
     const div = document.createElement("div");
     div.className = "profile-item";
-    div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span></span>
+    div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span>
+        ${p.code ? `<div class="code-chip">${formatCode(p.code)}</div>` : ""}</span>
       <span class="item-actions">
         <button class="mini prev">${t("previewBtn", lang)}</button>
         <button class="mini dl" title="Download">⤓</button>
@@ -1103,12 +1285,25 @@ function renderProfileList() {
 }
 function fillSelects() {
   const list = getProfiles();
-  for (const sel of [$("#selectA"), $("#selectB")]) {
+  for (const sel of [$("#selectA"), $("#selectB"), $("#selectPreview")]) {
+    if (!sel) continue;
     const cur = sel.value;
     sel.innerHTML = `<option value="">${t("select", lang)}</option>` +
       list.map(p => `<option value="${p.id}">${p.name} — ${new Date(p.date).toLocaleDateString()}</option>`).join("");
     sel.value = cur;
   }
+}
+
+// ---------- preview picker ----------
+function openPreviewPicker() {
+  fillSelects();
+  const list = getProfiles();
+  $("#previewLocal").hidden = list.length === 0;
+  $("#previewEmpty").hidden = list.length > 0;
+  if (list.length) $("#selectPreview").value = list[list.length - 1].id;
+  $("#previewError").textContent = "";
+  $("#previewCode").value = "";
+  show("preview");
 }
 
 // ---------- quiz ----------
@@ -1154,12 +1349,43 @@ function finishQuiz() {
     id: "p_" + Date.now(),
     name: quiz.name,
     date: new Date().toISOString(),
+    code: null,
     answers: quiz.answers,
   };
   const list = getProfiles(); list.push(profile); saveProfiles(list);
-  $("#shareCode").value = encodeProfile(profile);
   renderProfileList();
   show("done");
+  publishCode(profile);
+}
+
+// Upload the profile and show its short code. If the network is down the
+// profile is already saved locally, so we offer a retry and point the user at
+// the file download instead of losing their work.
+let pendingProfile = null;
+async function publishCode(profile) {
+  pendingProfile = profile;
+  const field = $("#shareCode"), err = $("#codeError"), retry = $("#codeRetryBtn"), life = $("#codeLife");
+
+  if (profile.code) { field.value = formatCode(profile.code); return; }
+
+  field.value = t("codeSaving", lang);
+  err.hidden = true; retry.hidden = true; life.hidden = false;
+
+  try {
+    const code = await saveProfile(profile, lang);
+    profile.code = code;
+    // persist the code alongside the stored profile
+    const list = getProfiles();
+    const stored = list.find(p => p.id === profile.id);
+    if (stored) { stored.code = code; saveProfiles(list); }
+    field.value = formatCode(code);
+    renderProfileList();
+  } catch {
+    field.value = "";
+    life.hidden = true;
+    err.hidden = false; err.textContent = t("codeOffline", lang);
+    retry.hidden = false;
+  }
 }
 
 // ---------- compare ----------
@@ -1183,6 +1409,7 @@ document.addEventListener("click", e => {
   if (act === "go-home") show("home");
   if (act === "start") { $("#nameInput").value = ""; show("name"); }
   if (act === "go-compare") { fillSelects(); show("compare"); }
+  if (act === "go-preview") openPreviewPicker();
   if (act === "begin-quiz") {
     const n = $("#nameInput").value.trim();
     if (!n) { $("#nameInput").focus(); return; }
@@ -1202,16 +1429,84 @@ $("#shareBtn").onclick = () => {
   if (navigator.share) navigator.share({ title: "MatchWise", text: $("#shareCode").value });
   else $("#shareCode").select();
 };
-$("#importBtn").onclick = () => {
-  const p = decodeProfile($("#importCode").value);
-  const err = $("#compareError");
+// Resolve whatever the user typed into a profile.
+// Short 8-character strings are looked up on the server; anything longer is
+// treated as a legacy v2 share code so old links keep working offline.
+// Returns a profile, or null when the code simply doesn't exist.
+// Throws only when the network fails, so callers can say so plainly.
+async function resolveCode(raw) {
+  const input = String(raw || "").trim();
+  if (!input) return null;
+  if (isCloudCode(input)) return await fetchProfile(input);
+  return decodeProfile(input);
+}
+
+// Add to the local list unless an identical profile is already there.
+function rememberProfile(p) {
+  const list = getProfiles();
+  const dupe = list.find(x => (p.code && x.code === p.code) ||
+                              (x.name === p.name && JSON.stringify(x.answers) === JSON.stringify(p.answers)));
+  if (dupe) return dupe;
+  list.push(p); saveProfiles(list); renderProfileList();
+  return p;
+}
+
+async function withBusy(btn, errEl, fn) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = t("importBusy", lang);
+  errEl.style.color = ""; errEl.textContent = "";
+  try {
+    return await fn();
+  } catch {
+    errEl.textContent = t("netError", lang);
+    return undefined;
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+$("#importBtn").onclick = async () => {
+  const err = $("#compareError"), btn = $("#importBtn");
+  const p = await withBusy(btn, err, () => resolveCode($("#importCode").value));
+  if (p === undefined) return;                       // network error, already shown
   if (!p) { err.textContent = t("importBad", lang); return; }
-  const list = getProfiles(); list.push(p); saveProfiles(list);
+
+  const stored = rememberProfile(p);
   $("#importCode").value = "";
-  err.textContent = ""; renderProfileList();
+  fillSelects();
+  // drop the newcomer straight into whichever slot is still empty
+  if (!$("#selectA").value) $("#selectA").value = stored.id;
+  else if (!$("#selectB").value || $("#selectB").value === $("#selectA").value) $("#selectB").value = stored.id;
+
   err.style.color = "var(--ok)"; err.textContent = t("importOk", lang);
-  setTimeout(() => { err.textContent = ""; err.style.color = ""; }, 2000);
+  setTimeout(() => { err.textContent = ""; err.style.color = ""; }, 2500);
 };
+
+// ---------- preview screen ----------
+$("#previewOpenBtn").onclick = () => {
+  const p = getProfiles().find(x => x.id === $("#selectPreview").value);
+  if (!p) { $("#previewError").textContent = t("importBad", lang); return; }
+  showSolo(p);
+};
+$("#previewCodeBtn").onclick = async () => {
+  const err = $("#previewError"), btn = $("#previewCodeBtn");
+  const p = await withBusy(btn, err, () => resolveCode($("#previewCode").value));
+  if (p === undefined) return;
+  if (!p) { err.textContent = t("importBad", lang); return; }
+  rememberProfile(p);
+  showSolo(p);
+};
+$("#previewUploadBtn").onclick = () => $("#fileInput").click();
+$("#donePreviewBtn").onclick = () => { if (pendingProfile) showSolo(pendingProfile); };
+$("#codeRetryBtn").onclick = () => { if (pendingProfile) publishCode(pendingProfile); };
+
+// Type the code in any case, with or without the dash.
+for (const el of [$("#importCode"), $("#previewCode")]) {
+  el.addEventListener("input", () => {
+    const raw = normalizeCode(el.value).slice(0, 8);
+    el.value = raw.length > 4 ? raw.slice(0, 4) + "-" + raw.slice(4) : raw;
+  });
+}
 $("#generateBtn").onclick = generate;
 
 // ---------- file download / upload ----------

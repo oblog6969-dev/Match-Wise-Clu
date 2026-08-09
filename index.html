@@ -30,7 +30,10 @@
       <h1 data-i18n="heroTitle">How well do you grow together?</h1>
       <p class="muted" data-i18n="heroSub">A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.</p>
       <button class="btn primary big" data-action="start" data-i18n="startBtn">Start my assessment</button>
-      <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
+      <div class="row two-up">
+        <button class="btn ghost" data-action="go-preview" data-i18n="previewHomeBtn">Preview my results</button>
+        <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
+      </div>
     </div>
     <div class="card" id="savedProfilesCard">
       <h3 data-i18n="savedProfiles">Saved profiles</h3>
@@ -44,6 +47,34 @@
       <p id="fileMsg" class="error small"></p>
     </div>
     <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
+  </section>
+
+  <!-- PREVIEW PICKER -->
+  <section class="screen" id="screen-preview">
+    <div class="card">
+      <h2 data-i18n="previewTitle">Preview my results</h2>
+      <p class="muted small" data-i18n="previewSub">See your own profile on its own — no partner needed.</p>
+
+      <div id="previewLocal">
+        <label data-i18n="previewPick">A profile saved on this device</label>
+        <select id="selectPreview"></select>
+        <button class="btn primary big" id="previewOpenBtn" data-i18n="previewOpen">Open preview</button>
+      </div>
+      <p id="previewEmpty" class="muted small" hidden data-i18n="previewNone">Nothing saved on this device yet.</p>
+
+      <hr class="soft">
+      <label data-i18n="previewByCode">Or open results by test code</label>
+      <input type="text" id="previewCode" class="code-input" maxlength="12"
+             autocomplete="off" autocapitalize="characters" spellcheck="false"
+             data-i18n-ph="pastePh" placeholder="e.g. ABCD-2345">
+      <button class="btn ghost big" id="previewCodeBtn" data-i18n="previewOpen">Open preview</button>
+
+      <hr class="soft">
+      <button class="btn ghost" id="previewUploadBtn" data-i18n="previewFile">Or upload a profile file</button>
+
+      <p id="previewError" class="error small"></p>
+      <button class="btn ghost" data-action="go-home" data-i18n="homeBtn">Home</button>
+    </div>
   </section>
 
   <!-- NAME -->
@@ -73,12 +104,19 @@
     <div class="card center">
       <div class="big-emoji">✅</div>
       <h2 data-i18n="doneTitle">Profile created</h2>
-      <p class="muted" data-i18n="doneSub">Share this code with your partner, or paste theirs to see your compatibility report.</p>
-      <textarea id="shareCode" readonly rows="4"></textarea>
+      <p class="muted" data-i18n="doneSub">Send this code to your partner.</p>
+
+      <label class="code-label" data-i18n="yourCode">Your test code</label>
+      <input id="shareCode" class="code-display" readonly value="">
+      <p class="muted small" id="codeLife" data-i18n="codeLife">The code works for 6 months.</p>
+      <p class="error small" id="codeError" hidden></p>
+      <button class="btn ghost" id="codeRetryBtn" hidden data-i18n="codeRetry">Try again</button>
+
       <div class="row">
         <button class="btn primary" id="copyBtn" data-i18n="copyBtn">Copy code</button>
         <button class="btn ghost" id="shareBtn" data-i18n="shareBtn">Share…</button>
       </div>
+      <button class="btn ghost big" id="donePreviewBtn" data-i18n="previewHomeBtn">Preview my results</button>
       <button class="btn ghost big" id="downloadBtn" data-i18n="downloadBtn">Download my profile file</button>
       <button class="btn primary big" data-action="go-compare" data-i18n="toCompareBtn">Compare now</button>
     </div>
@@ -96,11 +134,13 @@
         <label data-i18n="personB">Person B</label>
         <select id="selectB"></select>
       </div>
-      <details class="paste-box">
-        <summary data-i18n="pasteSummary">Paste a partner's share code</summary>
-        <textarea id="importCode" rows="4" data-i18n-ph="pastePh" placeholder="Paste code here"></textarea>
-        <button class="btn ghost" id="importBtn" data-i18n="importBtn">Import profile</button>
-      </details>
+      <div class="paste-box">
+        <label data-i18n="pasteSummary">Add your partner by test code</label>
+        <input type="text" id="importCode" class="code-input" maxlength="12"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"
+               data-i18n-ph="pastePh" placeholder="e.g. ABCD-2345">
+        <button class="btn ghost" id="importBtn" data-i18n="importBtn">Load partner's results</button>
+      </div>
       <button class="btn primary big" id="generateBtn" data-i18n="generateBtn">Generate report</button>
       <p id="compareError" class="error small"></p>
     </div>

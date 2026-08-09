@@ -3,6 +3,7 @@ import { QUESTIONS } from "./questions.js";
 import { STR, t } from "./i18n.js";
 import { compare, soloSummary } from "./scoring.js";
 import { renderReport, renderSolo } from "./report.js";
+import { saveProfile, fetchProfile, formatCode, normalizeCode, isCloudCode } from "./cloud.js";
 
 const $ = s => document.querySelector(s);
 const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
@@ -31,7 +32,8 @@ function decodeProfile(code) {
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
 function profileToFile(p) {
   return JSON.stringify({
-    app: "MatchWise", version: 2, name: p.name, date: p.date, answers: p.answers,
+    app: "MatchWise", version: 2, name: p.name, date: p.date,
+    code: p.code || undefined, answers: p.answers,
   }, null, 2);
 }
 function fileToProfile(text) {
@@ -40,7 +42,8 @@ function fileToProfile(text) {
     // accept our own file format, or a bare {name, answers}
     const name = o.name ?? o.n, answers = o.answers ?? o.a;
     if (!name || !answers || typeof answers !== "object") return null;
-    return { id: "f_" + Date.now(), name, date: o.date || new Date().toISOString(), answers };
+    return { id: "f_" + Date.now(), name, date: o.date || new Date().toISOString(),
+             code: o.code || null, answers };
   } catch { return null; }
 }
 function downloadProfile(p) {
@@ -92,7 +95,8 @@ function renderProfileList() {
   for (const p of list) {
     const div = document.createElement("div");
     div.className = "profile-item";
-    div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span></span>
+    div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span>
+        ${p.code ? `<div class="code-chip">${formatCode(p.code)}</div>` : ""}</span>
       <span class="item-actions">
         <button class="mini prev">${t("previewBtn", lang)}</button>
         <button class="mini dl" title="Download">⤓</button>
@@ -108,12 +112,25 @@ function renderProfileList() {
 }
 function fillSelects() {
   const list = getProfiles();
-  for (const sel of [$("#selectA"), $("#selectB")]) {
+  for (const sel of [$("#selectA"), $("#selectB"), $("#selectPreview")]) {
+    if (!sel) continue;
     const cur = sel.value;
     sel.innerHTML = `<option value="">${t("select", lang)}</option>` +
       list.map(p => `<option value="${p.id}">${p.name} — ${new Date(p.date).toLocaleDateString()}</option>`).join("");
     sel.value = cur;
   }
+}
+
+// ---------- preview picker ----------
+function openPreviewPicker() {
+  fillSelects();
+  const list = getProfiles();
+  $("#previewLocal").hidden = list.length === 0;
+  $("#previewEmpty").hidden = list.length > 0;
+  if (list.length) $("#selectPreview").value = list[list.length - 1].id;
+  $("#previewError").textContent = "";
+  $("#previewCode").value = "";
+  show("preview");
 }
 
 // ---------- quiz ----------
@@ -159,12 +176,43 @@ function finishQuiz() {
     id: "p_" + Date.now(),
     name: quiz.name,
     date: new Date().toISOString(),
+    code: null,
     answers: quiz.answers,
   };
   const list = getProfiles(); list.push(profile); saveProfiles(list);
-  $("#shareCode").value = encodeProfile(profile);
   renderProfileList();
   show("done");
+  publishCode(profile);
+}
+
+// Upload the profile and show its short code. If the network is down the
+// profile is already saved locally, so we offer a retry and point the user at
+// the file download instead of losing their work.
+let pendingProfile = null;
+async function publishCode(profile) {
+  pendingProfile = profile;
+  const field = $("#shareCode"), err = $("#codeError"), retry = $("#codeRetryBtn"), life = $("#codeLife");
+
+  if (profile.code) { field.value = formatCode(profile.code); return; }
+
+  field.value = t("codeSaving", lang);
+  err.hidden = true; retry.hidden = true; life.hidden = false;
+
+  try {
+    const code = await saveProfile(profile, lang);
+    profile.code = code;
+    // persist the code alongside the stored profile
+    const list = getProfiles();
+    const stored = list.find(p => p.id === profile.id);
+    if (stored) { stored.code = code; saveProfiles(list); }
+    field.value = formatCode(code);
+    renderProfileList();
+  } catch {
+    field.value = "";
+    life.hidden = true;
+    err.hidden = false; err.textContent = t("codeOffline", lang);
+    retry.hidden = false;
+  }
 }
 
 // ---------- compare ----------
@@ -188,6 +236,7 @@ document.addEventListener("click", e => {
   if (act === "go-home") show("home");
   if (act === "start") { $("#nameInput").value = ""; show("name"); }
   if (act === "go-compare") { fillSelects(); show("compare"); }
+  if (act === "go-preview") openPreviewPicker();
   if (act === "begin-quiz") {
     const n = $("#nameInput").value.trim();
     if (!n) { $("#nameInput").focus(); return; }
@@ -207,16 +256,84 @@ $("#shareBtn").onclick = () => {
   if (navigator.share) navigator.share({ title: "MatchWise", text: $("#shareCode").value });
   else $("#shareCode").select();
 };
-$("#importBtn").onclick = () => {
-  const p = decodeProfile($("#importCode").value);
-  const err = $("#compareError");
+// Resolve whatever the user typed into a profile.
+// Short 8-character strings are looked up on the server; anything longer is
+// treated as a legacy v2 share code so old links keep working offline.
+// Returns a profile, or null when the code simply doesn't exist.
+// Throws only when the network fails, so callers can say so plainly.
+async function resolveCode(raw) {
+  const input = String(raw || "").trim();
+  if (!input) return null;
+  if (isCloudCode(input)) return await fetchProfile(input);
+  return decodeProfile(input);
+}
+
+// Add to the local list unless an identical profile is already there.
+function rememberProfile(p) {
+  const list = getProfiles();
+  const dupe = list.find(x => (p.code && x.code === p.code) ||
+                              (x.name === p.name && JSON.stringify(x.answers) === JSON.stringify(p.answers)));
+  if (dupe) return dupe;
+  list.push(p); saveProfiles(list); renderProfileList();
+  return p;
+}
+
+async function withBusy(btn, errEl, fn) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = t("importBusy", lang);
+  errEl.style.color = ""; errEl.textContent = "";
+  try {
+    return await fn();
+  } catch {
+    errEl.textContent = t("netError", lang);
+    return undefined;
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+$("#importBtn").onclick = async () => {
+  const err = $("#compareError"), btn = $("#importBtn");
+  const p = await withBusy(btn, err, () => resolveCode($("#importCode").value));
+  if (p === undefined) return;                       // network error, already shown
   if (!p) { err.textContent = t("importBad", lang); return; }
-  const list = getProfiles(); list.push(p); saveProfiles(list);
+
+  const stored = rememberProfile(p);
   $("#importCode").value = "";
-  err.textContent = ""; renderProfileList();
+  fillSelects();
+  // drop the newcomer straight into whichever slot is still empty
+  if (!$("#selectA").value) $("#selectA").value = stored.id;
+  else if (!$("#selectB").value || $("#selectB").value === $("#selectA").value) $("#selectB").value = stored.id;
+
   err.style.color = "var(--ok)"; err.textContent = t("importOk", lang);
-  setTimeout(() => { err.textContent = ""; err.style.color = ""; }, 2000);
+  setTimeout(() => { err.textContent = ""; err.style.color = ""; }, 2500);
 };
+
+// ---------- preview screen ----------
+$("#previewOpenBtn").onclick = () => {
+  const p = getProfiles().find(x => x.id === $("#selectPreview").value);
+  if (!p) { $("#previewError").textContent = t("importBad", lang); return; }
+  showSolo(p);
+};
+$("#previewCodeBtn").onclick = async () => {
+  const err = $("#previewError"), btn = $("#previewCodeBtn");
+  const p = await withBusy(btn, err, () => resolveCode($("#previewCode").value));
+  if (p === undefined) return;
+  if (!p) { err.textContent = t("importBad", lang); return; }
+  rememberProfile(p);
+  showSolo(p);
+};
+$("#previewUploadBtn").onclick = () => $("#fileInput").click();
+$("#donePreviewBtn").onclick = () => { if (pendingProfile) showSolo(pendingProfile); };
+$("#codeRetryBtn").onclick = () => { if (pendingProfile) publishCode(pendingProfile); };
+
+// Type the code in any case, with or without the dash.
+for (const el of [$("#importCode"), $("#previewCode")]) {
+  el.addEventListener("input", () => {
+    const raw = normalizeCode(el.value).slice(0, 8);
+    el.value = raw.length > 4 ? raw.slice(0, 4) + "-" + raw.slice(4) : raw;
+  });
+}
 $("#generateBtn").onclick = generate;
 
 // ---------- file download / upload ----------
