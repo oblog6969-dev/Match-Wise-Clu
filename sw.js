@@ -10,10 +10,11 @@
 // Anything missing isn't precached, so offline it falls through to a network
 // fetch that can't succeed — and since js/app.js imports the v3 modules at
 // load time, one missing entry breaks the whole app, not just one feature.
-const CACHE = "matchwise-v3";
+const CACHE = "matchwise-v4";
 const ASSETS = ["./", "index.html", "style.css", "manifest.json",
   "js/app.js", "js/cloud.js", "js/i18n.js", "js/questions.js", "js/scoring.js", "js/report.js",
-  "js/questions-v3.js", "js/scoring-v3.js", "js/report-v3.js"];
+  "js/questions-v3.js", "js/scoring-v3.js", "js/report-v3.js",
+  "js/questions-v4.js", "js/scoring-v4.js", "js/report-v4.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

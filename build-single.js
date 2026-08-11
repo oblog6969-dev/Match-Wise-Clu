@@ -20,6 +20,11 @@ const bundle = [
   strip(rd('js/questions-v3.js')),
   strip(rd('js/scoring-v3.js')),
   strip(rd('js/report-v3.js')),
+  // v4 layer, same dependency-order rule: each file only imports from
+  // files listed above it. See Build-MatchWise-v4.md.
+  strip(rd('js/questions-v4.js')),
+  strip(rd('js/scoring-v4.js')),
+  strip(rd('js/report-v4.js')),
   strip(rd('js/app.js')).replace(/if \("serviceWorker"[\s\S]*?\{\}\);/, ''),
 ].join('\n\n');
 
@@ -34,10 +39,15 @@ fs.writeFileSync('MatchWise-preview.html', html);
 const problems = [];
 if (/^import\s/m.test(html)) problems.push('leftover import');
 if (/^export\s/m.test(html)) problems.push('leftover export');
+// `strip` only removes whole lines starting with `import`, so a multi-line
+// import silently leaves its continuation lines and closing `} from "…";`
+// in the bundle — a syntax error that used to surface only in the browser.
+if (/^\}\s*from\s/m.test(html)) problems.push('multi-line import left a dangling `} from` — keep every import on one line');
 if (/src="js\/|href="style\.css/.test(html)) problems.push('external reference');
 for (const key of ['importBtn:', 'levelLow:', 'sTitle:', 'previewBtn:',
                    'previewTitle:', 'create_profile', 'get_profile', 'SUPABASE_URL',
-                   'v3Methodology:', 'intimacyToggle', 'ECR-S'])
+                   'v3Methodology:', 'intimacyToggle', 'ECR-S',
+                   'genderQ:', 'REWRITES_V4', 'worldviewAxes', 'axis4-track'])
   if (!html.includes(key)) problems.push('missing ' + key);
 
 // The service worker precaches an explicit file list. A js/ file that exists
@@ -49,7 +59,7 @@ const swAssets = (sw.match(/const ASSETS = \[([\s\S]*?)\];/) || [, ''])[1];
 for (const f of fs.readdirSync('js').filter(f => f.endsWith('.js')))
   if (!swAssets.includes(`js/${f}`)) problems.push(`sw.js ASSETS missing js/${f}`);
 // And a stale CACHE name means installed phones never see any of it.
-if (!/const CACHE = "matchwise-v3"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
+if (!/const CACHE = "matchwise-v4"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
 
 if (problems.length) { console.error('BUILD PROBLEMS:', problems); process.exit(1); }
 console.log('built MatchWise-preview.html:', html.length, 'bytes — checks passed');

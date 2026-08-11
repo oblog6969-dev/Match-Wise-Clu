@@ -12,6 +12,14 @@ export const STR = {
   whoTitle:     { en: "Who is taking the assessment?", ar: "من سيقوم بالتقييم؟" },
   namePh:       { en: "Your first name", ar: "اسمك الأول" },
   whoNote:      { en: "Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.", ar: "أجب بصدق لا بمثالية. لا توجد إجابات صحيحة — الإجابات المتناقضة تقلل موثوقية نتيجتك." },
+  // v4. This is the ONLY place in the UI that refers to the gender choice.
+  // Nothing during the assessment or in the report may mention it again —
+  // see the invisibility rule in Build-MatchWise-v4.md §2.4.
+  genderQ:      { en: "You are:", ar: "أنت:" },
+  genderM:      { en: "Male", ar: "ذكر" },
+  genderF:      { en: "Female", ar: "أنثى" },
+  genderSkip:   { en: "Prefer not to say", ar: "أفضّل عدم الإفصاح" },
+  genderNote:   { en: "Some situations are described from where you would actually be standing. Nothing else changes.", ar: "بعض المواقف تُوصف من الموضع الذي ستكون فيه فعلًا. ولا يتغير شيء آخر." },
   beginBtn:     { en: "Begin", ar: "ابدأ" },
   backBtn:      { en: "Back", ar: "رجوع" },
   qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },

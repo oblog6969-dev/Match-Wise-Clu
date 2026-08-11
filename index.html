@@ -82,6 +82,15 @@
     <div class="card">
       <h2 data-i18n="whoTitle">Who is taking the assessment?</h2>
       <input type="text" id="nameInput" maxlength="30" data-i18n-ph="namePh" placeholder="Your first name">
+      <div class="gender-pick" id="genderPick">
+        <span class="muted small" data-i18n="genderQ">You are:</span>
+        <div class="gender-opts">
+          <label><input type="radio" name="gender" value="m"> <span data-i18n="genderM">Male</span></label>
+          <label><input type="radio" name="gender" value="f"> <span data-i18n="genderF">Female</span></label>
+          <label><input type="radio" name="gender" value="" checked> <span data-i18n="genderSkip">Prefer not to say</span></label>
+        </div>
+        <p class="muted small" data-i18n="genderNote">Some situations are described from where you would actually be standing. Nothing else changes.</p>
+      </div>
       <p class="muted small" data-i18n="whoNote">Answer honestly, not ideally. There are no right answers — inconsistent answers lower your result's confidence.</p>
       <div id="intimacyToggle" hidden>
         <label><input type="checkbox" id="intimacyCheck" checked> <span id="intimacyLabel"></span></label>

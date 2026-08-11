@@ -6,6 +6,20 @@ import { renderReportV3, renderSoloV3 } from "./report-v3.js";
 import { saveProfile, fetchProfile, formatCode, normalizeCode, isCloudCode } from "./cloud.js";
 import { MODULES, activeQuestions } from "./questions-v3.js";
 import { compareV3, soloSummaryV3, isV3Answers } from "./scoring-v3.js";
+import { buildBankV4 } from "./questions-v4.js";
+import { compareV4, soloSummaryV4, genderOf, GENDER_KEY } from "./scoring-v4.js";
+import { renderReportV4, renderSoloV4 } from "./report-v4.js";
+
+// ---------- v4 routing ----------
+// v4 is the version new assessments are taken in. Older profiles are NOT
+// migrated: a v2 pair still renders through the v2 report and a v3 pair
+// through the v3 report, exactly as before. v4 is reached when either side
+// carries a v4 marker — a v4-only item id, or the gender key. Everything
+// v4 adds is additive, so a v3 profile compared against a v4 one simply
+// scores on the items they share, which is the same graceful path v3
+// already established for v2.
+const isV4 = p => !!(p && p.answers &&
+  (genderOf(p) || ["n1", "n2", "n3", "n4"].some(id => p.answers[id] != null)));
 
 // ---------- v3 routing helpers ----------
 // A profile is "v3" purely by virtue of which item ids appear in its answers
@@ -45,7 +59,7 @@ const saveProfiles = p => localStorage.setItem(LS.profiles, JSON.stringify(p));
 // share code: base64url of compact JSON. `v` is written for humans reading
 // the payload — nothing in this app parses it back out (see decodeProfile
 // below), so getting it right is a courtesy, not a functional requirement.
-const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: isV3Answers(p.answers) ? 3 : 2 }))));
+const encodeProfile = p => btoa(unescape(encodeURIComponent(JSON.stringify({ n: p.name, d: p.date, a: p.answers, v: isV4(p) ? 4 : isV3Answers(p.answers) ? 3 : 2 }))));
 function decodeProfile(code) {
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
@@ -59,7 +73,7 @@ function decodeProfile(code) {
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
 function profileToFile(p) {
   return JSON.stringify({
-    app: "MatchWise", version: isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
+    app: "MatchWise", version: isV4(p) ? 4 : isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
     code: p.code || undefined, answers: p.answers,
   }, null, 2);
 }
@@ -88,10 +102,11 @@ function downloadProfile(p) {
 let lastSolo = null;
 function showSolo(p) {
   lastSolo = p;
-  const v3 = isV3Answers(p.answers);
-  let s = v3 ? soloSummaryV3(p) : soloSummary(p);
+  const v4 = isV4(p), v3 = isV3Answers(p.answers);
+  let s = v4 ? soloSummaryV4(p) : v3 ? soloSummaryV3(p) : soloSummary(p);
   if (p.imported) s = redactAnswerList(s);
-  $("#soloRoot").innerHTML = v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
+  $("#soloRoot").innerHTML = v4 ? renderSoloV4(s, p, lang)
+    : v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
   show("solo");
 }
 
@@ -205,10 +220,21 @@ function renderQuestion() {
     answer(q, "v" in o ? o.v : o.k);
   });
 }
+// The 220ms pause is the selection animation. Without a guard, taps landing
+// inside that window queue extra advances — and on the last question each one
+// calls finishQuiz() again, saving a duplicate profile and publishing a
+// duplicate share code. A stress test that tapped faster than the animation
+// produced 62 profiles from a single run. `advancing` swallows anything that
+// arrives before the transition completes.
+let advancing = false;
 function answer(q, v) {
+  if (advancing) return;
   quiz.answers[q.id] = v;
+  advancing = true;
   setTimeout(() => {
-    if (quiz.i < quiz.bank.length - 1) { quiz.i++; renderQuestion(); }
+    if (quiz.i < quiz.bank.length - 1) { quiz.i++; advancing = false; renderQuestion(); }
+    // On the last question the guard stays latched deliberately: the quiz is
+    // over, and nothing should be able to call finishQuiz() a second time.
     else finishQuiz();
   }, 220);
 }
@@ -218,6 +244,7 @@ function finishQuiz() {
     name: quiz.name,
     date: new Date().toISOString(),
     code: null,
+    g: quiz.gender || null,
     answers: quiz.answers,
   };
   const list = getProfiles(); list.push(profile); saveProfiles(list);
@@ -265,7 +292,9 @@ function generate() {
   if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
   err.textContent = "";
   const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
-  if (bothV2) {
+  if (isV4(pa) || isV4(pb)) {
+    $("#reportRoot").innerHTML = renderReportV4(compareV4(pa, pb), pa, pb, lang);
+  } else if (bothV2) {
     $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
   } else {
     $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
@@ -287,11 +316,19 @@ document.addEventListener("click", e => {
     if (!n) { $("#nameInput").focus(); return; }
     const intimacyEl = $("#intimacyCheck");
     const includeIntimacy = intimacyEl ? intimacyEl.checked : true;
-    quiz = { name: n, i: 0, answers: {}, intimacy: includeIntimacy, bank: activeQuestions({ intimacy: includeIntimacy }) };
+    const gEl = document.querySelector('input[name="gender"]:checked');
+    const gender = gEl && (gEl.value === "m" || gEl.value === "f") ? gEl.value : null;
+    // The gender key is seeded into answers immediately so it travels with
+    // every copy of this profile — share code, Supabase row, .json backup —
+    // without a schema change. See genderOf() in scoring-v4.js.
+    const seed = gender ? { [GENDER_KEY]: gender } : {};
+    quiz = { name: n, i: 0, gender, answers: seed, intimacy: includeIntimacy,
+             bank: buildBankV4({ gender, intimacy: includeIntimacy }) };
+    advancing = false;   // release the tap guard for the new run
     show("quiz"); renderQuestion();
   }
 });
-$("#backBtn").onclick = () => { if (quiz.i > 0) { quiz.i--; renderQuestion(); } };
+$("#backBtn").onclick = () => { if (advancing) return; if (quiz.i > 0) { quiz.i--; renderQuestion(); } };
 $("#langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); if ($("#screen-quiz").classList.contains("active")) renderQuestion(); };
 $("#themeBtn").onclick = () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); };
 $("#copyBtn").onclick = async () => {

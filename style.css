@@ -225,3 +225,24 @@ ul.clean li:last-child{border:none}
 #intimacyToggle label{display:flex;align-items:center;gap:10px;font-size:.95rem;cursor:pointer}
 #intimacyToggle input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent2);cursor:pointer;flex-shrink:0}
 #intimacyNote{margin-top:8px;line-height:1.5}
+
+/* ── v4: gender picker (name screen) and worldview axis track ───────────── */
+.gender-pick { margin: 14px 0 4px; }
+.gender-opts { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 4px; }
+.gender-opts label { display: flex; align-items: center; gap: 6px; font-size: .95rem; cursor: pointer; }
+.gender-opts input { accent-color: var(--accent); }
+
+/* One horizontal line per worldview axis, with a dot per person. The track
+   spans -100..+100; a dot's left offset is (value + 100) / 2 percent. */
+.axis4-track {
+  position: relative; height: 10px; margin: 8px 0 6px; border-radius: 5px;
+  background: linear-gradient(90deg, var(--line, #d8d8e0), var(--line, #d8d8e0));
+}
+.axis4-track::after {
+  content: ""; position: absolute; left: 50%; top: -3px; width: 1px; height: 16px;
+  background: var(--line, #d8d8e0); opacity: .9;
+}
+.axis4-track b {
+  position: absolute; top: -3px; width: 16px; height: 16px; margin-inline-start: -8px;
+  border-radius: 50%; border: 2px solid var(--card, #fff); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}

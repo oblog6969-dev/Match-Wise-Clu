@@ -20,7 +20,7 @@ The preview screen shows your own results alone — no partner needed: where you
 
 ## How it works
 
-Each person answers 80 questions (77 if the optional intimacy section is skipped), then gets a share code. The partner pastes that code into their app and the report is generated locally. Nothing is uploaded anywhere.
+Each person answers 84 questions (81 if the optional intimacy section is skipped), then gets a share code. The partner pastes that code into their app and the report is generated locally. Nothing is uploaded anywhere.
 
 Scoring is not a simple average. Each question is scored one of three ways: similarity (closer answers are better — values, children, lifestyle), complementarity (moderate difference is healthy — who repairs after a fight), or tolerance range (difference is fine within a band, penalized beyond it — spending, social energy). Questions about children, religion and relocation are flagged as deal-breakers: a large gap raises an explicit alert and caps the headline score regardless of everything else.
 
@@ -60,6 +60,37 @@ Appreciation and Fairness at Home are their own categories on purpose: feeling a
 
 Physical Intimacy is opt-in. Skipping it costs no confidence, and the toggle states plainly that a partner never sees individual answers.
 
+## Situations, not statements
+
+Most questions are situations, not statements about yourself. Instead of rating "I find it easy to talk about my feelings" from 1 to 7, you are put in a specific evening and asked what you actually do. Forty-four of the eighty-four items work this way.
+
+The reason is faking. Situational judgment items are measurably harder to answer strategically than agreement scales — when people try to look good, their answers move much less. The honest caveat is that the same research found this extra resistance did **not** make such tests better at predicting anything. So the gain here is more honest answers and a less tedious test, not a better prediction.
+
+Forty items are still statements, on purpose. The Big Five, attachment and response-quality items are written in the style of published instruments and would lose that link if rewritten as scenarios. The reverse-scored twins that power the consistency checks have to stay statements too — a contradiction check works by mirroring wording, which a scenario cannot do.
+
+## Male and female versions
+
+At the start you choose male, female, or prefer not to say. Eighteen of the questions then place you where you would actually be standing: whose mother is on the phone, whose income dropped, who gets up at 3am.
+
+Nothing after that first screen refers to it. The order, the count and the progress bar are identical for everyone, the tailored questions are scattered through the flow rather than grouped, and the report never marks which ones they were. Both versions of a question offer the same answer values, so a male and a female profile still compare item for item.
+
+The choice travels with the profile — inside the answers payload, so share codes and `.json` backups carry it with no database change. A profile taken before this existed, or by someone who declined to say, gets the neutral wording and scores normally.
+
+## Worldview
+
+The report has a section called Worldview: four lines describing how a person tends to frame a decision.
+
+- **Continuity and change** — keep what works ↔ open to changing it
+- **Who decides** — family has a say ↔ the two of you decide
+- **Money and risk** — security first ↔ worth the risk
+- **Roles at home** — each has their own area ↔ whoever can, does
+
+It is measured quietly. No question exists to measure it; the signal rides on ordinary questions about money, family and weekends. Within a single question, two options often describe nearly the same behaviour in different vocabulary — one in the language of rights and choice, one in the language of duty and responsibility. The behaviour is neutral; the wording is what is being read.
+
+No ideology is ever named, in either language, and there is a check in the code that throws if one reaches a user-facing string. Neither end of any line is described as better. An axis is only shown once at least five of its items were answered; below that it says so rather than showing a number.
+
+Two of the four — roles at home, and who decides — are the ones where a wide gap is raised as something to talk about, because those are the gaps the divorce research keeps naming. Even then it changes nothing about the score. A worldview gap is not treated as a deal-breaker and never caps the Alignment Index; asserting that a values difference predicts failure would go past what the evidence supports.
+
 ## Where the questions come from
 
 The attachment section follows the two-dimension model of the ECR-S (Wei et al., 2007) — anxiety and avoidance — written in that style, not reproducing its items. The Big Five top-ups follow the BFI-2-XS structure (Soto & John, 2017). The response-quality items are BIDR-style (Hart et al., 2015).
@@ -68,13 +99,15 @@ The report's "How this was scored" panel shows the published reliability of thos
 
 ## Files
 
-`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — which layer on top without modifying the originals.
+`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — and three additive v4 modules — `questions-v4.js`, `scoring-v4.js`, `report-v4.js` — which layer on top without modifying anything below them. `Build-MatchWise-v4.md` is the v4 spec, including the research it was built from.
+
+Every `import` in the `js/` folder must stay on one line. `build-single.js` flattens the modules into the offline file by deleting whole lines that start with `import`, so a multi-line import leaves a dangling `} from "…";` behind. The build now fails loudly on that rather than shipping a broken bundle.
 
 `manifest.json` and `sw.js` make it installable and offline-capable. `MatchWise-preview.html` is generated. `Build-MatchWise-v2.md` and `Build-MatchWise-v3.md` are the design specs; the v3 spec records which research claims were checked and what the evidence said.
 
 ### Version compatibility
 
-A profile is identified as v2 or v3 purely by which question ids appear in its answers — nothing is stamped on the stored file, so existing profiles, share codes and `.json` backups keep working with no migration.
+A profile is identified as v2, v3 or v4 purely by which question ids appear in its answers (v4 also by the gender key) — nothing is stamped on the stored file, so existing profiles, share codes and `.json` backups keep working with no migration.
 
 A v2 profile still renders through the original v2 report, untouched. Comparing a v2 profile against a v3 one scores only the questions both answered, lowers confidence, and says so on screen — and the older profile is not penalised for "skipping" questions that did not exist when it was taken.
 
