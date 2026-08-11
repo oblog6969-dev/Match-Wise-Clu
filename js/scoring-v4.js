@@ -33,7 +33,7 @@
 import { questionScore, loveLanguage } from "./scoring.js";
 import { CONSISTENCY_PAIRS } from "./questions-v3.js";
 import { bigFiveV3, attachmentV3, impressionManagement, attentionCheck, profileConfidenceV3, profileHasIntimacy, CONFIDENCE_FLOOR } from "./scoring-v3.js";
-import { QUESTIONS_V4, buildBankV4, isV4Answers, AXES, AXES_CRITICAL, AXIS_MIN_ITEMS, V4_ONLY_IDS } from "./questions-v4.js";
+import { QUESTIONS_V4, buildBankV4, isV4Answers, AXES, AXES_CRITICAL, AXIS_MIN_ITEMS, V4_ONLY_IDS, STAGES } from "./questions-v4.js";
 
 const PAIRS = CONSISTENCY_PAIRS;
 const byIdV4 = Object.fromEntries(QUESTIONS_V4.map(q => [q.id, q]));
@@ -72,10 +72,32 @@ export function genderOf(p) {
   return (g === "m" || g === "f") ? g : null;
 }
 
+/**
+ * Relationship stage, stored and read the same way as gender.
+ *
+ * Returning null for an unrecorded stage is deliberate: every profile made
+ * before this shipped saw the present-tense wording, and null resolves to
+ * exactly that. Nothing is re-worded retroactively, and nothing is scored
+ * differently — stage changes presentation only, so a "pre" profile and a
+ * "mar" profile compare item for item with no adjustment and no penalty.
+ */
+export const STAGE_KEY = "__s";
+export function stageOf(p) {
+  const st = (p && p.s) || (p && p.answers && p.answers[STAGE_KEY]);
+  return STAGES.includes(st) ? st : null;
+}
+
+/** True when this person answered about a marriage they are not yet in. */
+export function answeredProspectively(p) {
+  const st = stageOf(p);
+  return st === "pre" || st === "was";
+}
+
 /** The item list this profile was actually shown, in order. */
 export function bankFor(p) {
   return buildBankV4({
     gender: genderOf(p),
+    stage: stageOf(p),
     intimacy: profileHasIntimacy(p.answers || {}),
   });
 }
@@ -158,6 +180,29 @@ export function compareAxes(axA, axB) {
   return out;
 }
 
+/**
+ * Where one person leans in each category, 0-100, on their own answers only.
+ *
+ * This is NOT the couple's agreement score. catScores in compareV4() says how
+ * closely the two match in a category; this says where each of them actually
+ * sits. The dual radar needs the second thing — a single polygon of agreement
+ * cannot show which of the two is pulling it down.
+ */
+export function categoryLean(p) {
+  const cats = {};
+  for (const q of bankFor(p)) {
+    if (q.mt === "info" || !q.w) continue;
+    const v = normV4(q, p.answers[q.id]);
+    if (v == null) continue;
+    (cats[q.cat] ||= { sum: 0, w: 0 });
+    cats[q.cat].sum += ((v - 1) / 6) * q.w;
+    cats[q.cat].w += q.w;
+  }
+  const out = {};
+  for (const c in cats) out[c] = Math.round(cats[c].sum / cats[c].w * 100);
+  return out;
+}
+
 // ── Solo summary ───────────────────────────────────────────────────────────
 export function soloSummaryV4(p) {
   const bank = bankFor(p);
@@ -206,6 +251,7 @@ export function soloSummaryV4(p) {
     attachment: attachmentV3(p.answers),
     love: loveLanguage(p.answers),
     worldview: worldviewAxes(p),
+    stage: stageOf(p),
     confidence: confidence.value,
     confidenceDetail: confidence,
     quality: {
@@ -266,17 +312,30 @@ export function compareV4(pa, pb, opts = {}) {
     .slice(0, 6)
     .map(r => r.q);
 
+  // Same six topics, with the per-item agreement score kept alongside so the
+  // report can show HOW far apart each one is. `topics` above keeps its
+  // original shape — renderReportV3 still reads it and must not break.
+  const topicsDetail = perQ
+    .filter(r => r.s < 0.55 && r.q.w >= 2)
+    .sort((x, y) => x.s - y.s)
+    .slice(0, 6);
+
   const sorted = Object.entries(catScores).sort((a, b) => b[1] - a[1]);
   return {
     index,
     confidence: Math.min(confA.value, confB.value),
-    catScores, alerts, topics,
+    catScores, alerts, topics, topicsDetail,
+    catLean: { a: categoryLean(pa), b: categoryLean(pb) },
     strengths: sorted.filter(([, v]) => v >= 75).slice(0, 4).map(([c]) => c),
     challenges: sorted.filter(([, v]) => v < 60).map(([c]) => c),
     bigFive: { a: bigFiveV3(pa.answers), b: bigFiveV3(pb.answers) },
     attachment: { a: attachmentV3(pa.answers), b: attachmentV3(pb.answers) },
     love: { a: loveLanguage(pa.answers), b: loveLanguage(pb.answers) },
     worldview: { a: axA, b: axB, axes },
+    // Reported as context only. No confidence deduction: the premarital
+    // evidence (PREPARE, 80-85% prediction over three years) does not support
+    // treating an expectation-based answer as worth less than a lived one.
+    stage: { a: stageOf(pa), b: stageOf(pb) },
     quality: {
       a: { im: impressionManagement(pa.answers), attention: attentionCheck(pa.answers) },
       b: { im: impressionManagement(pb.answers), attention: attentionCheck(pb.answers) },

@@ -76,6 +76,27 @@ Nothing after that first screen refers to it. The order, the count and the progr
 
 The choice travels with the profile — inside the answers payload, so share codes and `.json` backups carry it with no database change. A profile taken before this existed, or by someone who declined to say, gets the neutral wording and scores normally.
 
+## Married and not-yet-married
+
+The first screen asks where you are now: not married yet, married, or married before. That
+changes wording, nothing else.
+
+Twenty-six situations name a spouse ("your wife picks up your phone"), and two assume a child
+already exists. For someone still deciding whether to marry, that presupposes a life they are
+not in yet, so those items are reworded — "she picks it up", "picture a child of your own" —
+and the intro says once that some situations describe married life.
+
+The questions themselves are not removed, and answering them from imagination is not penalised.
+PREPARE, the standard premarital inventory, asks not-yet-married couples exactly these
+hypotheticals and predicts marital satisfaction at 80–85% accuracy over three years. For a
+married person the item reports behaviour; for an unmarried person it reports an expectation —
+and expectation mismatch is the thing this app exists to surface. Deducting confidence for it
+would contradict the only outcome evidence there is.
+
+Same item ids, same answer values, same scoring both ways, so a married person and a single
+person still compare item for item. The report adds one neutral line when the two answered
+from different places.
+
 ## Worldview
 
 The report has a section called Worldview: four lines describing how a person tends to frame a decision.
@@ -90,6 +111,32 @@ It is measured quietly. No question exists to measure it; the signal rides on or
 No ideology is ever named, in either language, and there is a check in the code that throws if one reaches a user-facing string. Neither end of any line is described as better. An axis is only shown once at least five of its items were answered; below that it says so rather than showing a number.
 
 Two of the four — roles at home, and who decides — are the ones where a wide gap is raised as something to talk about, because those are the gaps the divorce research keeps naming. Even then it changes nothing about the score. A worldview gap is not treated as a deal-breaker and never caps the Alignment Index; asserting that a values difference predicts failure would go past what the evidence supports.
+
+## Charts
+
+Every chart is hand-written inline SVG. No chart library: the app is an offline-first PWA with
+no build step, so a CDN script would break both the service worker precache and the
+single-file build.
+
+The couple report shows:
+
+- **The alignment index as a ring**, with confidence as a lighter inner arc. Two rings rather
+  than one stacked bar, because confidence does not reduce the index — they measure different
+  things.
+- **A radar with one outline per person.** The old radar drew a single polygon of the couple's
+  agreement, which could not show *which* of the two was pulling a category down. These are each
+  person's own lean, so the gap between the outlines is the information.
+- **One sorted bar chart** where strengths and challenges used to be two bullet lists. Aligned
+  areas at the top, divergent at the bottom, coloured by the same thresholds as the headline
+  badge.
+- **A gap bar on each topic to discuss**, widest first — which is the order worth talking in.
+
+The solo report gets its own radar and a confidence ring; its per-area bars stay, because they
+carry the pole labels a radar cannot.
+
+Charts flip their own coordinates in Arabic — SVG does not mirror on its own, so a chart that
+relied on the document direction would point at the wrong label in RTL. Printing resets the
+colour tokens, so a report printed while the app is in dark mode is legible on white paper.
 
 ## Where the questions come from
 

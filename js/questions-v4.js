@@ -799,12 +799,129 @@ export const NEW_ITEMS_V4 = [
 ];
 
 // =============================================================================
+// B2. Relationship stage — prospective wording
+// =============================================================================
+// The app's audience is mostly people deciding whether to marry, not people
+// already married. But 26 stems and 7 options name "your wife" / "your
+// husband" / "the child", which presupposes a marriage and a child that do
+// not exist yet for that reader.
+//
+// The fix is wording, not content. Asking a not-yet-married person how they
+// would handle married life is the established method, not a flaw in it —
+// PREPARE, the standard premarital inventory, does exactly this and predicts
+// marital satisfaction at 80-85% in two three-year longitudinal studies. The
+// item is measuring an *expectation*, and expectation mismatch is what causes
+// the conflict later. So nothing is removed and nothing is gated.
+//
+// Two registers only:
+//   present     — "your wife picks up your phone".  Used for stage "mar".
+//   prospective — "she picks up your phone".        Used for "pre" and "was".
+//
+// Same id, same option values, same scoring, both ways. A married person and
+// a single person still compare item for item — the same guarantee the gender
+// wing gives. Stage is stated once, in the intro, so no stem has to repeat
+// "imagine you are married" 26 times.
+//
+// A profile with no stage recorded (everything made before this shipped) gets
+// the present register, which is the wording those people actually saw.
+//
+// Key is `id|genderVariant`. `opts` is keyed by the option's score value, so
+// a reordering of the options can never silently rewrite the wrong one.
+
+export const PROSPECTIVE = {
+
+// ── stems that name a spouse ────────────────────────────────────────────
+"c3|m": { en:"You come home after the worst day you have had in months — a problem at work you have not solved yet. She can tell something is off and asks. You:",
+          ar:"تعود إلى البيت بعد أسوأ يوم مرّ عليك منذ شهور — مشكلة في العمل لم تحلّها بعد. تلاحظ أن شيئًا ما ليس على ما يرام وتسألك. أنت:" },
+"c3|f": { en:"You come home after the worst day you have had in months, and the house still needs sorting before anyone sleeps. He asks what happened. You:",
+          ar:"تعودين إلى البيت بعد أسوأ يوم مرّ عليكِ منذ شهور، والبيت ما زال يحتاج ترتيبًا قبل أن ينام أحد. يسألك عمّا حدث. أنتِ:" },
+
+"m3|n": { en:"Six months after the wedding, the two of you are setting up how money will work. What you would propose:",
+          ar:"بعد ستة أشهر من الزواج، تنظّمان طريقة إدارة المال بينكما. ما الذي ستقترحه:" },
+"m3|m": { en:"Six months after the wedding, the two of you are setting up how money will work. She earns her own salary. What you would propose:",
+          ar:"بعد ستة أشهر من الزواج، تنظّمان طريقة إدارة المال. لها راتبها الخاص. ما الذي ستقترحه:" },
+"m3|f": { en:"Six months after the wedding, the two of you are setting up how money will work. You earn your own salary. What you would propose:",
+          ar:"بعد ستة أشهر من الزواج، تنظّمان طريقة إدارة المال. لكِ راتبك الخاص. ما الذي ستقترحينه:" },
+
+"f2|m": { en:"The two of you have decided where you will live. Before you announce it, your mother calls to ask what you decided. You:",
+          ar:"اتفقتما على مكان السكن. قبل أن تعلنا القرار، تتصل والدتك لتسأل عمّا قررتما. أنت:",
+          opts:{ 3:{ en:"Give a general answer until the two of you announce it", ar:"تعطي إجابة عامة حتى تعلنا القرار معًا" },
+                 1:{ en:"Say it is settled between the two of you", ar:"تقول إنه أمر محسوم بينكما" } } },
+"f2|f": { en:"The two of you have decided where you will live. Before you announce it, his mother calls to ask what you decided. You:",
+          ar:"اتفقتما على مكان السكن. قبل أن تعلنا القرار، تتصل والدته لتسأل عمّا قررتما. أنتِ:",
+          opts:{ 3:{ en:"Say he will call her back about it", ar:"تقولين إنه سيعاود الاتصال بها بشأنه" },
+                 1:{ en:"Say it is settled between the two of you", ar:"تقولين إنه أمر محسوم بينكما" } } },
+
+"f3|m": { en:"There is a gathering at your family's house on the one free evening the two of you have had in three weeks. She is tired and would rather not. You:",
+          ar:"هناك تجمّع في بيت أهلك في الليلة الوحيدة الفارغة لديكما منذ ثلاثة أسابيع. هي متعبة وتفضّل عدم الذهاب. أنت:" },
+
+"t1|m": { en:"Your phone is on the majlis table. She picks it up to check something and it is unlocked. You:",
+          ar:"هاتفك على طاولة المجلس. تلتقطه لتتحقق من شيء والهاتف غير مقفل. أنت:" },
+"t1|f": { en:"Your phone is on the table. He picks it up to check something and it is unlocked. You:",
+          ar:"هاتفك على الطاولة. يلتقطه ليتحقق من شيء والهاتف غير مقفل. أنتِ:" },
+
+"t2|m": { en:"She mentions a male colleague she talks to often, and clearly enjoys talking to. You:",
+          ar:"تذكر زميلًا في العمل تتحدث معه كثيرًا وتستمتع بالحديث معه بوضوح. أنت:" },
+"t2|f": { en:"He mentions a female colleague he talks to often, and clearly enjoys talking to. You:",
+          ar:"يذكر زميلة في العمل يتحدث معها كثيرًا ويستمتع بالحديث معها بوضوح. أنتِ:" },
+
+"g1|m": { en:"She is offered the job she has wanted for years. It is in another city, and both your families are here. Your first reaction:",
+          ar:"تُعرض عليها الوظيفة التي أرادتها منذ سنوات. إنها في مدينة أخرى، وعائلتاكما هنا. أول رد فعل لديك:" },
+"g1|f": { en:"He is offered the job he has wanted for years. It is in another city, and both your families are here — including yours. Your first reaction:",
+          ar:"تُعرض عليه الوظيفة التي أرادها منذ سنوات. إنها في مدينة أخرى، وعائلتاكما هنا — ومنها عائلتك. أول رد فعل لديكِ:" },
+
+"g2|m": { en:"She wants to leave a secure salary to start something of her own. Savings would cover about eight months. You:",
+          ar:"تريد ترك راتب مضمون لتبدأ مشروعها الخاص. المدخرات تكفي نحو ثمانية أشهر. أنت:" },
+"g2|f": { en:"He wants to leave a secure salary to start something of his own. Savings would cover about eight months. You:",
+          ar:"يريد ترك راتب مضمون ليبدأ مشروعه الخاص. المدخرات تكفي نحو ثمانية أشهر. أنتِ:" },
+
+"u3|m": { en:"You have found something worth about three months' income and you want it. She does not know yet. You:",
+          ar:"وجدت شيئًا تقارب قيمته دخل ثلاثة أشهر وتريده. لا تعرف بعد. أنت:" },
+"u3|f": { en:"You have found something worth about three months' income and you want it. He does not know yet. You:",
+          ar:"وجدتِ شيئًا تقارب قيمته دخل ثلاثة أشهر وتريدينه. لا يعرف بعد. أنتِ:" },
+
+"n1|m": { en:"Your income drops sharply and stays down for six months. She can cover the rent from her own salary until it recovers. You:",
+          ar:"ينخفض دخلك بشدة ويبقى منخفضًا ستة أشهر. تستطيع تغطية الإيجار من راتبها حتى يتعافى. أنت:" },
+"n1|f": { en:"His income drops sharply and stays down for six months. You can cover the rent from your own salary until it recovers. You:",
+          ar:"ينخفض دخله بشدة ويبقى منخفضًا ستة أشهر. تستطيعين تغطية الإيجار من راتبك حتى يتعافى. أنتِ:" },
+
+"n3|m": { opts:{ 7:{ en:"Show her the message before you reply", ar:"تُريها الرسالة قبل أن ترد" } } },
+"n3|f": { opts:{ 7:{ en:"Show him the message before you reply", ar:"تُرينه الرسالة قبل أن تردي" } } },
+
+"n4|m": { en:"Your father announces, in front of everyone, a plan that involves the two of you — a date, a trip, a commitment — without asking first. You:",
+          ar:"يعلن والدك أمام الجميع خطة تشمل كليكما — موعدًا أو سفرًا أو التزامًا — دون أن يسأل أولًا. أنت:" },
+"n4|f": { en:"His father announces, in front of everyone, a plan that involves the two of you — a date, a trip, a commitment — without asking first. You:",
+          ar:"يعلن والده أمام الجميع خطة تشمل كليكما — موعدًا أو سفرًا أو التزامًا — دون أن يسأل أولًا. أنتِ:",
+          opts:{ 3:{ en:"Look to him to answer for both of you", ar:"تنظرين إليه ليجيب عنكما" } } },
+
+// ── stems that assume a child already exists ────────────────────────────
+"n2|n": { en:"Picture a child of your own, awake and crying at 3am. Both of you have work in the morning. What happens:",
+          ar:"تخيّل طفلًا لكما، مستيقظًا يبكي في الثالثة فجرًا. لدى كليكما عمل في الصباح. ما الذي يحدث:" },
+"n2|m": { en:"Picture a child of your own, awake and crying at 3am. You both have work in the morning, and she went the last two nights. What happens:",
+          ar:"تخيّل طفلًا لكما، مستيقظًا يبكي في الثالثة فجرًا. لدى كليكما عمل في الصباح، وقد ذهبت هي في الليلتين الماضيتين. ما الذي يحدث:" },
+"n2|f": { en:"Picture a child of your own, awake and crying at 3am. You both have work in the morning, and you went the last two nights. What happens:",
+          ar:"تخيّلي طفلًا لكما، مستيقظًا يبكي في الثالثة فجرًا. لدى كليكما عمل في الصباح، وقد ذهبتِ أنتِ في الليلتين الماضيتين. ما الذي يحدث:" },
+
+"fa1|n": { en:"Picture an ordinary weekday evening once you are living together: dinner, dishes, laundry and a child who will not settle. What would actually happen:",
+           ar:"تخيّل مساء يوم عادي بعد أن تعيشا معًا: العشاء والصحون والغسيل وطفل لا يهدأ. ما الذي سيحدث فعلًا:" },
+"fa1|m": { en:"Picture an ordinary weekday evening once you are living together: dinner, dishes, laundry and a child who will not settle. You have just come in from work. What would actually happen:",
+           ar:"تخيّل مساء يوم عادي بعد أن تعيشا معًا: العشاء والصحون والغسيل وطفل لا يهدأ. وقد عدت للتو من العمل. ما الذي سيحدث فعلًا:" },
+"fa1|f": { en:"Picture an ordinary weekday evening once you are living together: dinner, dishes, laundry and a child who will not settle. You have just come in from work too. What would actually happen:",
+           ar:"تخيّلي مساء يوم عادي بعد أن تعيشا معًا: العشاء والصحون والغسيل وطفل لا يهدأ. وقد عدتِ أنتِ أيضًا للتو من العمل. ما الذي سيحدث فعلًا:" },
+
+};
+
+// =============================================================================
 // C. Bank assembly
 // =============================================================================
 
 /** Genders the bank understands. `n` is the neutral fallback and is what every
  *  pre-v4 profile, and anyone who declines to say, receives. */
 const GENDER_KEYS = ["m", "f", "n"];
+
+/** Relationship stages. "pre" and "was" both read the prospective register. */
+export const STAGES = ["pre", "mar", "was"];
+const PROSPECTIVE_STAGES = new Set(["pre", "was"]);
 
 /** Pick the variant of a gendered item for one gender, or the item as-is. */
 function resolveGender(q, gender) {
@@ -815,6 +932,31 @@ function resolveGender(q, gender) {
   // answer list, export — can accidentally reveal that variants exist.
   const { gv, ...rest } = q;
   return { ...rest, ...v, type: v.opts ? "mcq" : rest.type };
+}
+
+/**
+ * Apply the prospective wording on top of an already gender-resolved item.
+ * Only stems and individual options listed in PROSPECTIVE change; everything
+ * else — id, score values, weights, axis loads — is untouched, which is what
+ * keeps a "pre" profile comparable to a "mar" one.
+ */
+function resolveStage(q, gender, stage) {
+  if (!PROSPECTIVE_STAGES.has(stage)) return q;
+  const g = GENDER_KEYS.includes(gender) ? gender : "n";
+  const o = PROSPECTIVE[`${q.id}|${g}`];
+  if (!o) return q;
+  const out = { ...q };
+  if (o.en) out.en = o.en;
+  if (o.ar) out.ar = o.ar;
+  if (o.opts && q.opts) {
+    // Keyed by score value, never by index — reordering options must not be
+    // able to silently rewrite a different answer than the one intended.
+    out.opts = q.opts.map(opt => {
+      const rep = o.opts[opt.v];
+      return rep ? { ...opt, en: rep.en, ar: rep.ar } : opt;
+    });
+  }
+  return out;
 }
 
 /** v3 bank with v4 scenario rewrites applied. Original objects are not mutated. */
@@ -848,16 +990,17 @@ export const AXIS_ITEM_IDS = (() => {
 
 /**
  * The bank to actually present.
- * Order, count and progress are identical for every gender — the gendered
- * items sit in their original positions and are never grouped. See the
- * invisibility rule in Build-MatchWise-v4.md §2.4.
+ * Order, count and progress are identical for every gender and every stage —
+ * the gendered items sit in their original positions and are never grouped,
+ * and stage only rewords. See the invisibility rule in
+ * Build-MatchWise-v4.md §2.4.
  *
- * @param {{gender?: "m"|"f"|null, intimacy?: boolean}} opts
+ * @param {{gender?: "m"|"f"|null, stage?: "pre"|"mar"|"was"|null, intimacy?: boolean}} opts
  */
-export function buildBankV4({ gender = null, intimacy = false } = {}) {
+export function buildBankV4({ gender = null, stage = null, intimacy = false } = {}) {
   return QUESTIONS_V4
     .filter(q => !q.mod || (q.mod === "intimacy" && intimacy))
-    .map(q => resolveGender(q, gender));
+    .map(q => resolveStage(resolveGender(q, gender), gender, stage));
 }
 
 /** True if these answers contain any v4-only item. */
@@ -914,4 +1057,33 @@ export function axisLoadFor(id, value, gender) {
   for (const a of AXES)
     if (AXIS_ITEM_IDS[a].length < AXIS_MIN_ITEMS)
       throw new Error(`questions-v4: axis "${a}" loaded on only ${AXIS_ITEM_IDS[a].length} items, needs ${AXIS_MIN_ITEMS}`);
+
+  // ── stage layer ──────────────────────────────────────────────────────
+  for (const key of Object.keys(PROSPECTIVE)) {
+    const [id, g] = key.split("|");
+    if (!ids.has(id)) throw new Error(`questions-v4: PROSPECTIVE targets unknown id "${id}"`);
+    if (!GENDER_KEYS.includes(g)) throw new Error(`questions-v4: PROSPECTIVE "${key}" has an unknown gender variant`);
+    const base = resolveGender(QUESTIONS_V4.find(q => q.id === id), g);
+    const o = PROSPECTIVE[key];
+    if ((o.en && !o.ar) || (o.ar && !o.en))
+      throw new Error(`questions-v4: PROSPECTIVE "${key}" has only one language`);
+    for (const v of Object.keys(o.opts || {}))
+      if (!(base.opts || []).some(x => String(x.v) === v))
+        throw new Error(`questions-v4: PROSPECTIVE "${key}" rewrites option value ${v}, which this item does not have`);
+  }
+
+  // Stage must never change what is scored — only how it reads.
+  for (const g of GENDER_KEYS) for (const st of ["pre", "was"]) {
+    const now = buildBankV4({ gender: g === "n" ? null : g, intimacy: true });
+    const later = buildBankV4({ gender: g === "n" ? null : g, stage: st, intimacy: true });
+    if (now.length !== later.length) throw new Error("questions-v4: stage changed the item count");
+    for (let i = 0; i < now.length; i++) {
+      if (now[i].id !== later[i].id) throw new Error("questions-v4: stage changed the item order");
+      const a = (now[i].opts || []).map(o => o.v).join(",");
+      const b = (later[i].opts || []).map(o => o.v).join(",");
+      if (a !== b) throw new Error(`questions-v4: stage changed the score values of "${now[i].id}"`);
+      if (JSON.stringify((now[i].opts || []).map(o => o.ax || null)) !== JSON.stringify((later[i].opts || []).map(o => o.ax || null)))
+        throw new Error(`questions-v4: stage changed the axis loads of "${now[i].id}"`);
+    }
+  }
 }

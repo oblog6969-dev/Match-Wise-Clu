@@ -7,7 +7,7 @@ import { saveProfile, fetchProfile, formatCode, normalizeCode, isCloudCode } fro
 import { MODULES, activeQuestions } from "./questions-v3.js";
 import { compareV3, soloSummaryV3, isV3Answers } from "./scoring-v3.js";
 import { buildBankV4 } from "./questions-v4.js";
-import { compareV4, soloSummaryV4, genderOf, GENDER_KEY } from "./scoring-v4.js";
+import { compareV4, soloSummaryV4, genderOf, stageOf, GENDER_KEY, STAGE_KEY } from "./scoring-v4.js";
 import { renderReportV4, renderSoloV4 } from "./report-v4.js";
 
 // ---------- v4 routing ----------
@@ -19,7 +19,7 @@ import { renderReportV4, renderSoloV4 } from "./report-v4.js";
 // scores on the items they share, which is the same graceful path v3
 // already established for v2.
 const isV4 = p => !!(p && p.answers &&
-  (genderOf(p) || ["n1", "n2", "n3", "n4"].some(id => p.answers[id] != null)));
+  (genderOf(p) || stageOf(p) || ["n1", "n2", "n3", "n4"].some(id => p.answers[id] != null)));
 
 // ---------- v3 routing helpers ----------
 // A profile is "v3" purely by virtue of which item ids appear in its answers
@@ -245,6 +245,7 @@ function finishQuiz() {
     date: new Date().toISOString(),
     code: null,
     g: quiz.gender || null,
+    s: quiz.stage || null,
     answers: quiz.answers,
   };
   const list = getProfiles(); list.push(profile); saveProfiles(list);
@@ -318,12 +319,16 @@ document.addEventListener("click", e => {
     const includeIntimacy = intimacyEl ? intimacyEl.checked : true;
     const gEl = document.querySelector('input[name="gender"]:checked');
     const gender = gEl && (gEl.value === "m" || gEl.value === "f") ? gEl.value : null;
-    // The gender key is seeded into answers immediately so it travels with
-    // every copy of this profile — share code, Supabase row, .json backup —
-    // without a schema change. See genderOf() in scoring-v4.js.
-    const seed = gender ? { [GENDER_KEY]: gender } : {};
-    quiz = { name: n, i: 0, gender, answers: seed, intimacy: includeIntimacy,
-             bank: buildBankV4({ gender, intimacy: includeIntimacy }) };
+    const sEl = document.querySelector('input[name="stage"]:checked');
+    const stage = sEl && ["pre", "mar", "was"].includes(sEl.value) ? sEl.value : null;
+    // Both keys are seeded into answers immediately so they travel with every
+    // copy of this profile — share code, Supabase row, .json backup — without
+    // a schema change. See genderOf() / stageOf() in scoring-v4.js.
+    const seed = {};
+    if (gender) seed[GENDER_KEY] = gender;
+    if (stage) seed[STAGE_KEY] = stage;
+    quiz = { name: n, i: 0, gender, stage, answers: seed, intimacy: includeIntimacy,
+             bank: buildBankV4({ gender, stage, intimacy: includeIntimacy }) };
     advancing = false;   // release the tap guard for the new run
     show("quiz"); renderQuestion();
   }

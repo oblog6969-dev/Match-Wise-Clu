@@ -82,6 +82,15 @@
     <div class="card">
       <h2 data-i18n="whoTitle">Who is taking the assessment?</h2>
       <input type="text" id="nameInput" maxlength="30" data-i18n-ph="namePh" placeholder="Your first name">
+      <div class="gender-pick" id="stagePick">
+        <span class="muted small" data-i18n="stageQ">Where are you now?</span>
+        <div class="gender-opts">
+          <label><input type="radio" name="stage" value="pre" checked> <span data-i18n="stagePre">Not married yet</span></label>
+          <label><input type="radio" name="stage" value="mar"> <span data-i18n="stageMar">Married</span></label>
+          <label><input type="radio" name="stage" value="was"> <span data-i18n="stageWas">Married before</span></label>
+        </div>
+        <p class="muted small" data-i18n="stageNote">Some situations describe married life. If you are not married yet, answer as you expect you would be — that expectation is exactly what this is measuring.</p>
+      </div>
       <div class="gender-pick" id="genderPick">
         <span class="muted small" data-i18n="genderQ">You are:</span>
         <div class="gender-opts">

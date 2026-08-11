@@ -246,3 +246,33 @@ ul.clean li:last-child{border:none}
   position: absolute; top: -3px; width: 16px; height: 16px; margin-inline-start: -8px;
   border-radius: 50%; border: 2px solid var(--card, #fff); box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
+
+/* ── v4 charts ──────────────────────────────────────────────────────────── */
+/* Topics to discuss: text plus a bar showing how far apart the two answers
+   were. The bar is the point of the section, so it sits under the text at
+   full width rather than squeezed beside it on a phone. */
+.topic-gap { display: block; }
+.topic-gap .topic-text { margin-bottom: 7px; }
+.topic-gap .topic-bar {
+  display: block; height: 6px; border-radius: 3px;
+  background: var(--line); overflow: hidden;
+}
+.topic-gap .topic-bar i { display: block; height: 100%; border-radius: 3px; }
+
+/* The ring gauge carries its own number, so the old giant numeral is not
+   rendered on v4 reports. Kept in the sheet for v2/v3 reports, which still
+   use it. */
+.score-hero svg { margin-top: 4px; }
+.score-hero svg + .badge { margin-top: 10px; }
+
+@media print {
+  /* SVG charts must not be split across a page break. */
+  .card svg { break-inside: avoid; page-break-inside: avoid; }
+  /* Printing while the app is in dark mode used to put light text on white
+     paper: the print block resets body colour but not the custom properties,
+     and every chart draws with var(--text) / var(--muted). Reset the tokens
+     themselves so charts and text print legibly from either theme. */
+  :root, [data-theme="dark"] {
+    --text: #16181f; --muted: #555a68; --line: #ccccd6; --card: #ffffff; --bg: #ffffff;
+  }
+}

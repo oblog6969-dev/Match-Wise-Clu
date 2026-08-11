@@ -26,13 +26,73 @@ These map to six scenario themes that v4 must cover heavily:
 5. Phones, privacy and outside contact
 6. Career/mobility vs. home duties
 
-### 0.3 The Saudi worldview landscape (drives the ideology axes)
+### 0.3 Asking unmarried people about married life (drives the stage layer)
+
+The audience is mostly people deciding *whether* to marry, and the bank is full of married-life
+situations. The worry is that a single person answers those with noise.
+
+The evidence says otherwise, and clearly:
+
+- **PREPARE**, the standard premarital inventory, asks not-yet-married couples exactly these
+  hypotheticals and **predicts marital satisfaction at 80–85% accuracy** across two three-year
+  longitudinal studies of couples assessed three months before marrying. If imagined answers
+  were noise, that number would be impossible.
+- So the item is not broken. For a married person it reports *behaviour*; for an unmarried
+  person it reports an *expectation*. Expectation mismatch is precisely what this app exists to
+  surface — it is the thing that collides later.
+- **Therefore: no confidence deduction for answering prospectively.** Treating an expectation as
+  second-class data would contradict the only outcome evidence available on this question.
+
+What *is* standard practice is versioning by stage. PREPARE/ENRICH ships five: PREPARE
+(premarital), PREPARE-CC (cohabiting), PREPARE-MC (marriage with children), ENRICH (married),
+MATE (55+), each validated separately.
+
+MatchWise takes the light version of that: **one bank, two wording registers.** A separate bank
+per stage would make two people at different stages incomparable, which breaks the app's core
+use case.
+
+### 0.4 The Saudi worldview landscape (drives the ideology axes)
 
 - Youth are **not** on a simple traditional↔modern line. 68% of young Saudis say men and women have equal rights and 96% welcome women in the workforce — while **69% say religion is the most important part of their identity** and **82% put preserving religious/cultural identity above a globalised society**. Support for reform and attachment to tradition coexist in the *same* person.
 - Female labour participation rose 19.7% (2018) → 36.3% (Q1 2025). Reality moved fast; expectations inside couples did not move at the same speed. That gap is exactly what MatchWise should surface.
 - Named camps ("liberal", "Sahwa/Islamist", the newer state-aligned nationalism, "Islamo-liberal" reformists) are **contested, politically loaded, and often self-denied**. A user will reject a label but will happily answer a scenario.
 
 **Conclusion:** measure *axes*, never *camps*. Do not print the words feminist, liberal, Islamist, secular, capitalist anywhere in the app.
+
+---
+
+## Part 2b — Relationship stage
+
+### Why it exists
+
+The v4 gendered rewrites introduced "your wife" / "your husband" into 26 stems and 7 options,
+where v3 had said "your partner". For the app's main audience — not yet married — that
+presupposes a marriage that does not exist. Two further items assumed a child already existed.
+That was a regression, and the stage layer fixes it.
+
+### Design
+
+- Captured on the first screen, beside gender: **Not married yet · Married · Married before**.
+- Two registers only. `pre` and `was` both read **prospective**; `mar` reads **present**.
+  A profile with no stage recorded gets the present register — the wording those people saw.
+- Delivered by `PROSPECTIVE`, a map keyed `id|genderVariant`, applied on top of the
+  gender-resolved item. Option overrides are keyed **by score value, not index**, so
+  reordering options can never silently rewrite the wrong one.
+- Stage is stated once, in the intro line, so no stem repeats "imagine you are married".
+- Stored as `answers.__s`, the same trick `__g` uses, so it travels through share codes and
+  `.json` backups with no schema change.
+
+### The guarantee
+
+Stage changes wording only. A self-check at load compares the two registers item by item and
+throws if the count, the order, the option score values, or the axis loads differ. Verified:
+identical answer patterns produce an identical index, identical confidence and identical
+worldview axes across `mar`, `pre` and mixed pairs.
+
+### The report
+
+One neutral line when the two answered from different places, or when both answered
+prospectively. No caveat, no deduction — see §0.3.
 
 ---
 
@@ -264,3 +324,54 @@ Any future gendered item must be checked this way, both variants together.
 twins that power the consistency checks — a contradiction check works by mirroring wording,
 which a scenario cannot do, so converting them would break 5 of the 12 pairs. Two carry Big
 Five trait tags. `fa2` has to stay a felt judgment ("it has to feel fair"), not a behaviour.
+
+
+---
+
+## Part 8 — Report visuals
+
+Four sections of the v3 report are replaced with charts. `report-v3.js` is **not edited** —
+`report-v4.js` takes v3's finished HTML string and swaps whole cards out of it, so a v2 or v3
+profile still renders exactly as before.
+
+| Was | Now |
+|---|---|
+| Headline number as text | Ring gauge, index arc + lighter confidence arc |
+| Radar of couple agreement (one polygon) | Radar with one outline per person |
+| Strengths list + challenges list | One sorted bar chart, coloured by band |
+| Topics as plain text | Each topic with a gap bar, widest first |
+| v3's category bar list | Removed — the sorted chart replaces it |
+
+### How the swap works
+
+`replaceCard(html, marker, newHtml)` finds the marker, walks back to the enclosing
+`<div class="card`, then counts `<div>`/`</div>` depth to find that card's real end. A regex
+cannot do this because cards nest divs. **If a marker is not found the original HTML is returned
+untouched** — a report showing v3's old section is a far better failure than one with a hole in
+it.
+
+Markers are v3's own emoji, which are stable. The worldview card was moved from 🧭 to 🗺
+because v3 already uses 🧭 for both the attachment card and the executive summary, and three
+identical markers would make the anchors ambiguous.
+
+### Data the charts needed
+
+`compareV4()` gained two fields. Both are additive; `topics` and `catScores` keep their original
+shape because `renderReportV3` still reads them and must not break.
+
+- `catLean: {a, b}` — each person's own 0-100 lean per category. This is **not** `catScores`,
+  which is the couple's agreement. The dual radar needs the first thing.
+- `topicsDetail: [{q, s}]` — the same six topics with the per-item agreement score kept, so the
+  gap bar has something to draw.
+
+### Constraints these charts are built under
+
+- **No chart library.** Offline PWA, no build step: a CDN script would break the service worker
+  precache and `build-single.js`. All SVG, hand-written.
+- **RTL is not automatic.** SVG does not mirror. The ring fills anticlockwise, the radar steps
+  round the circle in the other direction, and the diverging chart flips its bar origin and text
+  anchors, all keyed off `lang`.
+- **Print.** Charts get `break-inside: avoid`. Printing also now resets the colour tokens
+  themselves — the old print block reset `body` colour but not `--text`/`--muted`/`--line`, so a
+  report printed from dark mode put light text and light chart strokes on white paper. That bug
+  predates v4 and affected v3's charts too; it is fixed for all of them.

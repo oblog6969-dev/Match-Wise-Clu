@@ -20,6 +20,14 @@ export const STR = {
   genderF:      { en: "Female", ar: "أنثى" },
   genderSkip:   { en: "Prefer not to say", ar: "أفضّل عدم الإفصاح" },
   genderNote:   { en: "Some situations are described from where you would actually be standing. Nothing else changes.", ar: "بعض المواقف تُوصف من الموضع الذي ستكون فيه فعلًا. ولا يتغير شيء آخر." },
+  // v4 stage. Wording only — it never changes what is scored, and a
+  // not-yet-married answer is never treated as worth less. See the
+  // PREPARE evidence cited in Build-MatchWise-v4.md §0.4.
+  stageQ:       { en: "Where are you now?", ar: "أين أنت الآن؟" },
+  stagePre:     { en: "Not married yet", ar: "لم أتزوج بعد" },
+  stageMar:     { en: "Married", ar: "متزوج" },
+  stageWas:     { en: "Married before", ar: "سبق لي الزواج" },
+  stageNote:    { en: "Some situations describe married life. If you are not married yet, answer as you expect you would be — that expectation is exactly what this is measuring.", ar: "بعض المواقف تصف حياة الزواج. إن لم تتزوج بعد، فأجب كما تتوقع أن تتصرف — فهذا التوقع هو بالضبط ما يقيسه هذا التقييم." },
   beginBtn:     { en: "Begin", ar: "ابدأ" },
   backBtn:      { en: "Back", ar: "رجوع" },
   qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },
