@@ -9,6 +9,10 @@ import { compareV3, soloSummaryV3, isV3Answers } from "./scoring-v3.js";
 import { buildBankV4 } from "./questions-v4.js";
 import { compareV4, soloSummaryV4, genderOf, stageOf, GENDER_KEY, STAGE_KEY } from "./scoring-v4.js";
 import { renderReportV4, renderSoloV4 } from "./report-v4.js";
+import { renderReportV5 } from "./report-v5.js";
+import { renderReportV6, renderSoloV6 } from "./report-v6.js";
+import { buildDemoProfiles, DEMO_IDS } from "./demo-v5.js";
+import { encryptText, decryptText, isEncrypted } from "./crypto-v5.js";
 
 // ---------- v4 routing ----------
 // v4 is the version new assessments are taken in. Older profiles are NOT
@@ -43,7 +47,7 @@ function redactAnswerList(s) {
 }
 
 const $ = s => document.querySelector(s);
-const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
+const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports" };
 
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -71,15 +75,30 @@ function decodeProfile(code) {
 // ---------- i18n / theme ----------
 // ---------- profile files (.json) ----------
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
-function profileToFile(p) {
-  return JSON.stringify({
+//
+// v5: encryption is opt-in (see #encryptExportsCheck) and OFF by default —
+// see the guardrail note in crypto-v5.js. When it's off this produces
+// exactly the plain JSON it always has; nothing reading these files today
+// has to change.
+const encryptExportsOn = () => localStorage.getItem(LS.encrypt) === "1";
+
+async function profileToFile(p) {
+  const plain = JSON.stringify({
     app: "MatchWise", version: isV4(p) ? 4 : isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
     code: p.code || undefined, answers: p.answers,
   }, null, 2);
+  return encryptExportsOn() ? encryptText(plain) : plain;
 }
-function fileToProfile(text) {
+
+/**
+ * Throws with `.code === "wrong-device"` (see crypto-v5.js) when the text is
+ * an encrypted envelope this browser cannot open — callers show a specific
+ * message for that instead of "not a valid profile".
+ */
+async function fileToProfile(text) {
+  const plain = isEncrypted(text) ? await decryptText(text) : text;
   try {
-    const o = JSON.parse(text);
+    const o = JSON.parse(plain);
     // accept our own file format, or a bare {name, answers}
     const name = o.name ?? o.n, answers = o.answers ?? o.a;
     if (!name || !answers || typeof answers !== "object") return null;
@@ -87,9 +106,10 @@ function fileToProfile(text) {
              code: o.code || null, answers };
   } catch { return null; }
 }
-function downloadProfile(p) {
+async function downloadProfile(p) {
   const safe = String(p.name).replace(/[^\w؀-ۿ-]+/g, "_").slice(0, 20);
-  const blob = new Blob([profileToFile(p)], { type: "application/json" });
+  const text = await profileToFile(p);
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -105,8 +125,11 @@ function showSolo(p) {
   const v4 = isV4(p), v3 = isV3Answers(p.answers);
   let s = v4 ? soloSummaryV4(p) : v3 ? soloSummaryV3(p) : soloSummary(p);
   if (p.imported) s = redactAnswerList(s);
-  $("#soloRoot").innerHTML = v4 ? renderSoloV4(s, p, lang)
+  $("#soloRoot").innerHTML = v4 ? renderSoloV6(s, p, lang)
     : v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
+  // v5: a demo profile is illustrative sample data, never a real person's —
+  // it must not leave the device as a downloadable file either.
+  $("#soloDownloadBtn").style.display = p.demo ? "none" : "";
   show("solo");
 }
 
@@ -151,16 +174,20 @@ function renderProfileList() {
   for (const p of list) {
     const div = document.createElement("div");
     div.className = "profile-item";
+    // v5: demo profiles carry a visible tag and no download button — they
+    // are sample data, never a real person's file. See demo-v5.js.
     div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span>
+        ${p.demo ? `<span class="demo-badge">${t("demoTag", lang)}</span>` : ""}
         ${p.code ? `<div class="code-chip">${formatCode(p.code)}</div>` : ""}</span>
       <span class="item-actions">
         <button class="mini prev">${t("previewBtn", lang)}</button>
-        <button class="mini dl" title="Download">⤓</button>
+        ${p.demo ? "" : `<button class="mini dl" title="Download">⤓</button>`}
         <button class="del" title="Delete">✕</button>
       </span>`;
     div.querySelector("b").textContent = p.name;
     div.querySelector(".prev").onclick = () => showSolo(p);
-    div.querySelector(".dl").onclick = () => downloadProfile(p);
+    const dl = div.querySelector(".dl");
+    if (dl) dl.onclick = () => downloadProfile(p);
     div.querySelector(".del").onclick = () => { saveProfiles(list.filter(x => x.id !== p.id)); renderProfileList(); fillSelects(); };
     box.appendChild(div);
   }
@@ -285,6 +312,27 @@ async function publishCode(profile) {
 }
 
 // ---------- compare ----------
+// v5 fix: the couple report used to be drawn once and never redrawn, so
+// switching language while screen-report was open left the report showing
+// its original language even though the rest of the app switched. `lastPair`
+// remembers who is being compared so the language toggle (below) can call
+// this again instead of only re-running the quiz/solo screens.
+let lastPair = null;
+function renderCoupleReport(pa, pb) {
+  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  if (isV4(pa) || isV4(pb)) {
+    // v6 wraps v5 (which wraps v4) and adds the Interaction Style card.
+    // Every layer is presentation-only: compareV4()'s index, confidence and
+    // deal-breaker capping are untouched by both.
+    $("#reportRoot").innerHTML = renderReportV6(compareV4(pa, pb), pa, pb, lang);
+  } else if (bothV2) {
+    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
+  } else {
+    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
+  }
+  lastPair = { pa, pb };
+  show("report");
+}
 function generate() {
   const list = getProfiles();
   const pa = list.find(p => p.id === $("#selectA").value);
@@ -292,15 +340,7 @@ function generate() {
   const err = $("#compareError");
   if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
   err.textContent = "";
-  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
-  if (isV4(pa) || isV4(pb)) {
-    $("#reportRoot").innerHTML = renderReportV4(compareV4(pa, pb), pa, pb, lang);
-  } else if (bothV2) {
-    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
-  } else {
-    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
-  }
-  show("report");
+  renderCoupleReport(pa, pb);
 }
 
 // ---------- events ----------
@@ -334,7 +374,17 @@ document.addEventListener("click", e => {
   }
 });
 $("#backBtn").onclick = () => { if (advancing) return; if (quiz.i > 0) { quiz.i--; renderQuestion(); } };
-$("#langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); if ($("#screen-quiz").classList.contains("active")) renderQuestion(); };
+// v5 fix: previously only the quiz screen re-rendered on a language switch,
+// so a couple report or solo preview kept showing its original language
+// while the rest of the app (including the report's own headings, which
+// come from applyLang()'s data-i18n pass) switched underneath it.
+$("#langBtn").onclick = () => {
+  lang = lang === "en" ? "ar" : "en";
+  applyLang();
+  if ($("#screen-quiz").classList.contains("active")) renderQuestion();
+  if ($("#screen-solo").classList.contains("active") && lastSolo) showSolo(lastSolo);
+  if ($("#screen-report").classList.contains("active") && lastPair) renderCoupleReport(lastPair.pa, lastPair.pb);
+};
 $("#themeBtn").onclick = () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); };
 $("#copyBtn").onclick = async () => {
   await navigator.clipboard.writeText($("#shareCode").value).catch(() => $("#shareCode").select());
@@ -443,7 +493,15 @@ $("#fileInput").onchange = async e => {
   const f = e.target.files[0];
   const msg = $("#fileMsg");
   if (!f) return;
-  const p = fileToProfile(await f.text());
+  let p;
+  try {
+    p = await fileToProfile(await f.text());
+  } catch (err) {
+    e.target.value = "";
+    msg.style.color = "";
+    msg.textContent = err && err.code === "wrong-device" ? t("fileWrongDevice", lang) : t("fileBad", lang);
+    return;
+  }
   e.target.value = "";           // allow re-picking the same file
   if (!p) { msg.style.color = ""; msg.textContent = t("fileBad", lang); return; }
   const list = getProfiles(); list.push(p); saveProfiles(list);
@@ -451,9 +509,32 @@ $("#fileInput").onchange = async e => {
   showSolo(p);                   // straight to their report
 };
 
+// ---------- v5: demo profiles ----------
+// One click, no fetch: buildDemoProfiles() generates both answer sets in the
+// browser from the live question bank (see demo-v5.js). Loaded at most once
+// — if the two demo ids are already saved, this only opens the compare
+// screen with them pre-selected rather than duplicating the rows.
+$("#demoBtn").onclick = () => {
+  const list = getProfiles();
+  const already = DEMO_IDS.every(id => list.some(p => p.id === id));
+  if (!already) { saveProfiles([...list.filter(p => !DEMO_IDS.includes(p.id)), ...buildDemoProfiles()]); renderProfileList(); }
+  fillSelects();
+  const fresh = getProfiles();
+  const a = fresh.find(p => p.id === "demo_a"), b = fresh.find(p => p.id === "demo_b");
+  if (a) $("#selectA").value = a.id;
+  if (b) $("#selectB").value = b.id;
+  $("#compareError").style.color = "var(--ok)";
+  $("#compareError").textContent = t("demoLoaded", lang);
+  show("compare");
+};
+
 // ---------- PWA ----------
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ---------- v5: encrypt-exports toggle ----------
+$("#encryptExportsCheck").checked = encryptExportsOn();
+$("#encryptExportsCheck").onchange = e => localStorage.setItem(LS.encrypt, e.target.checked ? "1" : "0");
 
 // ---------- init ----------
 applyTheme();

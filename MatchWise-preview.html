@@ -23,6 +23,19 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
+/* v5 fix: every chart in report-v3.js/report-v4.js is hand-rolled SVG that
+   flips its OWN coordinates for Arabic (see the comments in those files) —
+   they assume text-anchor="start"/"end" means the visual left/right edge.
+   But CSS `direction` inherits from <html dir="rtl"> straight into SVG, and
+   per the SVG spec text-anchor start/end are DIRECTION-RELATIVE, not visual:
+   under an inherited rtl direction the browser reinterprets "end" as the
+   logical (visually left) edge instead, which collided with the charts'
+   own manual mirroring and pushed Arabic labels outside the chart's
+   viewBox — invisible, not misplaced. Forcing ltr on the SVG itself (not
+   its Arabic text content, which still shapes and orders correctly per the
+   Unicode bidi algorithm regardless of this property) restores the plain
+   visual semantics every chart's math already assumes. */
+#app svg{direction:ltr}
 body{
   background:var(--bg); color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Arabic",sans-serif;
@@ -288,6 +301,31 @@ ul.clean li:last-child{border:none}
   }
 }
 
+/* ── v5 additions ──────────────────────────────────────────────────────── */
+/* Home screen "how it works" strip. Plain numbered rows, not icon tiles —
+   deliberately: an oversized unstyled glyph icon was one of the concrete
+   problems found reviewing another build's landing page. */
+.hiw-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.hiw-step { display: flex; gap: 12px; align-items: flex-start; }
+.hiw-num {
+  flex: 0 0 26px; height: 26px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent2) 14%, transparent); color: var(--accent2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .82rem; font-weight: 700;
+}
+.hiw-step span > b { font-size: .95rem; }
+
+/* Demo profiles: same profile-item row, tagged so it is never mistaken for
+   a real saved profile. */
+.demo-badge {
+  display: inline-block; margin-inline-start: 6px; padding: 2px 8px;
+  border-radius: 99px; font-size: .72rem; font-weight: 700;
+  background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn);
+}
+#demoBtn { margin-top: 10px; }
+
+.encrypt-toggle { display: flex; align-items: center; gap: 10px; font-size: .92rem; cursor: pointer; margin-top: 14px; font-weight: 500; }
+
 </style>
 </head>
 <body>
@@ -315,9 +353,27 @@ ul.clean li:last-child{border:none}
         <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
       </div>
     </div>
+    <!-- v5: how-it-works strip. Purely informational, no data or logic. -->
+    <div class="card">
+      <h3 data-i18n="howTitle">How it works</h3>
+      <ol class="hiw-list">
+        <li class="hiw-step"><span class="hiw-num">1</span>
+          <span><b data-i18n="how1Title">Assess</b><br><span class="muted small" data-i18n="how1Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">2</span>
+          <span><b data-i18n="how2Title">Get your code</b><br><span class="muted small" data-i18n="how2Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">3</span>
+          <span><b data-i18n="how3Title">Compare</b><br><span class="muted small" data-i18n="how3Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">4</span>
+          <span><b data-i18n="how4Title">Stay private</b><br><span class="muted small" data-i18n="how4Desc"></span></span></li>
+      </ol>
+    </div>
     <div class="card" id="savedProfilesCard">
       <h3 data-i18n="savedProfiles">Saved profiles</h3>
       <div id="profileList" class="profile-list"></div>
+      <!-- v5: one-click sample data so a new user sees a full report before
+           answering anything. Never uploaded, never exportable — see demo-v5.js. -->
+      <button class="btn ghost" id="demoBtn" data-i18n="demoBtn">Load demo profiles</button>
+      <p class="muted small" data-i18n="demoNote"></p>
     </div>
     <div class="card">
       <h3 data-i18n="uploadTitle">Have a profile file?</h3>
@@ -325,6 +381,9 @@ ul.clean li:last-child{border:none}
       <input type="file" id="fileInput" accept=".json,application/json" hidden>
       <button class="btn ghost big" id="uploadBtn" data-i18n="uploadBtn">Choose file…</button>
       <p id="fileMsg" class="error small"></p>
+      <!-- v5: opt-in, off by default — see the guardrail in crypto-v5.js. -->
+      <label class="encrypt-toggle"><input type="checkbox" id="encryptExportsCheck"> <span data-i18n="encryptExports">Encrypt my exported file</span></label>
+      <p class="muted small" data-i18n="encryptExportsNote"></p>
     </div>
     <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
   </section>
@@ -842,6 +901,24 @@ const STR = {
   v3MethodSimilarity:{ en: "Research note: being similar to your partner does not, by itself, predict a happy relationship. This report maps where you differ so you can talk about it — not to score you against each other.", ar: "ملاحظة بحثية: التشابه مع شريكك لا يتنبأ وحده بعلاقة سعيدة. هذا التقرير يرسم أماكن اختلافكما لتتحدثا عنها — لا ليقيّم أحدكما مقابل الآخر." },
   v3IndexTitle:      { en: "Alignment Index", ar: "مؤشر الانسجام" },
   v3NotAPrediction:  { en: "This is a starting point for conversation, not a prediction of your relationship's success.", ar: "هذه نقطة بداية للحوار، وليست تنبؤًا بنجاح علاقتكما." },
+  // v5 additions — home screen "How it works" strip and the demo-profiles
+  // shortcut. Purely presentational: no scoring key below this line.
+  howTitle:     { en: "How it works", ar: "كيف يعمل التطبيق" },
+  how1Title:    { en: "Assess", ar: "التقييم" },
+  how1Desc:     { en: "Answer at your own pace, in English or Arabic.", ar: "أجب في وقتك الخاص، بالعربية أو الإنجليزية." },
+  how2Title:    { en: "Get your code", ar: "احصل على رمزك" },
+  how2Desc:     { en: "Finish and get a short code to send your partner — nothing else to send.", ar: "أنهِ التقييم واحصل على رمز قصير ترسله لشريكك — لا حاجة لإرسال أي شيء آخر." },
+  how3Title:    { en: "Compare", ar: "المقارنة" },
+  how3Desc:     { en: "Enter their code, or compare two profiles saved on this device.", ar: "أدخل رمزهم، أو قارن بين ملفين محفوظين على هذا الجهاز." },
+  how4Title:    { en: "Stay private", ar: "ابقَ في أمان" },
+  how4Desc:     { en: "Everything stays on your device. Only an expiring code ever leaves it.", ar: "كل شيء يبقى على جهازك. لا يغادره سوى رمز ينتهي صلاحيته." },
+  demoBtn:      { en: "Load demo profiles", ar: "تحميل ملفَي تجربة" },
+  demoNote:     { en: "Loads two sample profiles so you can see a full report instantly.", ar: "يحمّل ملفَي تجربة لتتمكن من رؤية تقرير كامل فورًا." },
+  demoLoaded:   { en: "Demo profiles loaded — tap Compare two profiles to see the report.", ar: "تم تحميل ملفَي التجربة — اضغط «قارن ملفين» لرؤية التقرير." },
+  demoTag:      { en: "Demo", ar: "تجريبي" },
+  encryptExports:     { en: "Encrypt my exported file", ar: "تشفير الملف عند التنزيل" },
+  encryptExportsNote: { en: "Off by default. When on, downloaded files can only be re-opened on this device — good for a file sitting in email or a cloud drive.", ar: "معطّل افتراضيًا. عند التفعيل، لا يمكن إعادة فتح الملفات المنزّلة إلا على هذا الجهاز — مناسب لملف يمر عبر البريد أو التخزين السحابي." },
+  fileWrongDevice:    { en: "This file is encrypted and was exported from a different device or browser, so it can't be opened here.", ar: "هذا الملف مشفّر وصُدِّر من جهاز أو متصفح مختلف، لذا لا يمكن فتحه هنا." },
 };
 
 const CATS = {
@@ -3888,7 +3965,17 @@ function ringGauge(index, confidence, lang, label) {
  */
 function radarDual(series, cats, lang, catName) {
   const keys = cats;
-  const n = keys.length, cx = 175, cy = 165, R = 112;
+  // v5 fix: cx used to be 175 in a 350-wide viewBox (dead-centered, but with
+  // only ~40px margin past the label ring on either side). With up to 16
+  // categories on this chart, a long label landing near the 0°/180° spoke —
+  // where text-anchor pushes it AWAY from center rather than centering it —
+  // could run past the viewBox edge and get clipped by SVG's default
+  // overflow:hidden. Arabic category names are frequently longer than their
+  // English counterparts, so this showed up there first (e.g. "تخطيط
+  // المستقبل" / Future Planning). Widening the canvas to 430 and keeping cx
+  // centered (215) adds ~40px of margin on BOTH sides without touching the
+  // angle math, the anchor logic, or the visual radius (R) at all.
+  const n = keys.length, cx = 215, cy = 165, R = 112;
   if (!n) return "";
   // Angle step is negated in RTL so the categories read round the circle in
   // the same direction as the language.
@@ -3913,7 +4000,7 @@ function radarDual(series, cats, lang, catName) {
     const anchor = Math.abs(x - cx) < 12 ? "middle" : (x > cx ? "start" : "end");
     return `<text x="${x}" y="${y + 3}" font-size="9" text-anchor="${anchor}" fill="var(--muted)">${esc4(catName(k))}</text>`;
   }).join("");
-  return `<svg viewBox="0 0 350 330" width="100%" style="max-width:430px;display:block;margin:0 auto" role="img">
+  return `<svg viewBox="0 0 430 330" width="100%" style="max-width:430px;display:block;margin:0 auto" role="img">
     ${grid}${spokes}${polys}${labels}</svg>`;
 }
 
@@ -4171,6 +4258,783 @@ function spliceBeforeSummary(html, card) {
 }
 
 
+// MatchWise v5 scoring — additive layer over v4.
+// -----------------------------------------------------------------------------
+// Does NOT modify js/scoring.js, js/scoring-v3.js or js/scoring-v4.js.
+//
+// What v5 adds:
+//   1. Growth opportunities — categories where BOTH partners lean low on
+//      their OWN answers (profile.catLean, from soloSummaryV4/compareV4),
+//      not categories where the two DISAGREE. compareV4()'s `challenges`
+//      already covers disagreement; two people can fully agree while both
+//      leaning low on the same thing (e.g. both avoid conflict), and that
+//      case is exactly what challenges never catches, because agreement
+//      there scores high.
+//   2. Recommendations — short, templated, bilingual action lines built
+//      only from fields compareV4() already returns (strengths, challenges,
+//      growth). No new measurement, no new weight, no new axis.
+//
+// GUARDRAIL: nothing in this file may read or write res.index, res.confidence,
+// res.cap or any deal-breaker field. This layer is presentation logic over
+// numbers v4 already produced — it must not be able to move the headline.
+// -----------------------------------------------------------------------------
+
+/** Lean below which a category counts as "low" for growth purposes, 0-100. */
+const GROWTH_LEAN_MAX = 45;
+
+/** Max recommendation lines shown — keeps the section a starting point, not a checklist. */
+const REC_MAX = 5;
+
+/**
+ * Categories where both people's own lean (compareV4().catLean.{a,b}) sits
+ * below GROWTH_LEAN_MAX. Sorted so the lowest combined lean — the area both
+ * of them lean furthest from — comes first.
+ *
+ * Returns [] (never null) so callers never need a null check; an empty
+ * report section is a legitimate, honest result, not an error.
+ */
+function growthOpportunities(res) {
+  if (!res || !res.catLean || !res.catLean.a || !res.catLean.b) return [];
+  const { a, b } = res.catLean;
+  return Object.keys(a)
+    .filter(c => c in b && a[c] < GROWTH_LEAN_MAX && b[c] < GROWTH_LEAN_MAX)
+    .sort((x, y) => (a[x] + b[x]) - (a[y] + b[y]));
+}
+
+/**
+ * Up to REC_MAX action lines: the single weakest-agreement category, the
+ * single strongest shared growth area, then up to three strengths worth
+ * protecting. Each entry is {type, cat} — report-v5.js supplies the wording,
+ * this file only decides which categories earn a line and in what order.
+ */
+function recommendations(res) {
+  if (!res || !res.catScores) return [];
+  const out = [];
+
+  const challenges = (res.challenges || [])
+    .slice()
+    .sort((x, y) => res.catScores[x] - res.catScores[y]);
+  if (challenges[0]) out.push({ type: "challenge", cat: challenges[0] });
+
+  const growth = growthOpportunities(res);
+  if (growth[0] && growth[0] !== challenges[0]) out.push({ type: "growth", cat: growth[0] });
+
+  for (const cat of res.strengths || []) {
+    if (out.length >= REC_MAX) break;
+    if (out.some(r => r.cat === cat)) continue;
+    out.push({ type: "strength", cat });
+  }
+
+  return out.slice(0, REC_MAX);
+}
+
+
+// MatchWise v5 demo profiles — additive layer over v4.
+// -----------------------------------------------------------------------------
+// Does NOT modify js/questions-v4.js or js/scoring-v4.js.
+//
+// Two illustrative profiles, generated LIVE from the current v4 question
+// bank rather than hand-authored — so they can never drift out of sync with
+// the bank (a hand-authored demo referencing an old question id would break
+// silently), and they exercise the exact buildBankV4 / compareV4 path a
+// real assessment does.
+//
+// A seeded PRNG makes the two profiles reproducible: the same names always
+// get the same answers, so "Load demo profiles" shows a stable report a
+// user can screenshot or come back to — this is not meant to look different
+// on every click.
+//
+// GUARDRAIL: every profile this module returns carries `demo: true`. The UI
+// (app.js) must never let a demo profile publish a share code, upload to
+// Supabase, or be exported as if it were a real person's data — see the
+// checks in app.js around DEMO ids.
+// -----------------------------------------------------------------------------
+
+
+const DEMO_IDS = ["demo_a", "demo_b"];
+
+// mulberry32 — tiny, dependency-free seeded PRNG. Good enough for "stable
+// demo answers", not intended for anything cryptographic.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Answer every item in `bank` for one persona.
+ * `lean` in [-1, 1] biases which end of a likert (1-7) or mcq option list
+ * the persona tends toward; jitter keeps answers from looking mechanically
+ * identical question to question, the way a real person's would not be.
+ */
+function genAnswers(bank, gender, stage, lean, seed) {
+  const rand = mulberry32(seed);
+  const answers = {};
+  if (gender) answers[GENDER_KEY] = gender;
+  if (stage) answers[STAGE_KEY] = stage;
+
+  for (const q of bank) {
+    if (q.type === "likert") {
+      const center = 4 + lean * 2.2;
+      const jitter = (rand() - 0.5) * 2.4;
+      answers[q.id] = Math.max(1, Math.min(7, Math.round(center + jitter)));
+    } else if (q.type === "mcq" && q.opts && q.opts.length) {
+      const n = q.opts.length;
+      const target = ((lean + 1) / 2) * (n - 1);
+      const idx = Math.max(0, Math.min(n - 1, Math.round(target + (rand() - 0.5) * (n - 1))));
+      const o = q.opts[idx];
+      answers[q.id] = "v" in o ? o.v : o.k;
+    }
+  }
+  return answers;
+}
+
+/**
+ * Two profiles, kept close but not identical (lean 0.3 vs -0.1) so the demo
+ * report shows real texture — some strengths, a couple of areas worth
+ * discussing — rather than either a suspiciously perfect match or a
+ * discouraging mismatch on first look.
+ */
+function buildDemoProfiles() {
+  const now = new Date().toISOString();
+  const bankA = buildBankV4({ gender: "f", stage: "pre", intimacy: true });
+  const bankB = buildBankV4({ gender: "m", stage: "pre", intimacy: true });
+  return [
+    {
+      id: "demo_a", demo: true, name: "Sarah", date: now,
+      g: "f", s: "pre",
+      answers: genAnswers(bankA, "f", "pre", 0.3, 10301),
+    },
+    {
+      id: "demo_b", demo: true, name: "Ahmad", date: now,
+      g: "m", s: "pre",
+      answers: genAnswers(bankB, "m", "pre", -0.1, 20602),
+    },
+  ];
+}
+
+
+// MatchWise v5 export encryption — additive layer. No other file's exported
+// function signatures change; js/app.js is the only caller.
+// -----------------------------------------------------------------------------
+// Encrypts a downloaded profile .json with AES-GCM-256 under a key that
+// lives only in this browser's localStorage (`mw_device_key_v5`). No
+// passphrase is asked for: the file re-imports automatically on the SAME
+// device/browser via "Choose file…" — the same no-passphrase design
+// documented for the build this was reviewed against. Moving the file to a
+// different device or browser cannot decrypt it; that is the intended
+// limit, not a bug. This protects a file sitting in email or a cloud drive,
+// it is not a portable password.
+//
+// GUARDRAIL: this is opt-in (see the checkbox app.js wires up), OFF by
+// default. Every .json this app has ever exported is plain, human-readable
+// JSON — README calls that out explicitly — and something outside this app
+// may already read those files. Turning encryption on by default would
+// silently change that contract; a user (or a script of theirs) has to ask
+// for it first.
+// -----------------------------------------------------------------------------
+
+const PREFIX = "MWENC1:";
+const KEY_LS = "mw_device_key_v5";
+
+function cryptoSupported() {
+  return typeof crypto !== "undefined" && !!crypto.subtle && typeof crypto.subtle.encrypt === "function";
+}
+
+function toB64(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+function fromB64(s) {
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+}
+
+async function deviceKey() {
+  let raw = localStorage.getItem(KEY_LS);
+  if (!raw) {
+    raw = toB64(crypto.getRandomValues(new Uint8Array(32)).buffer);
+    localStorage.setItem(KEY_LS, raw);
+  }
+  return crypto.subtle.importKey("raw", fromB64(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+/** True if `text` is this module's own envelope, vs. a legacy plain-JSON export. */
+function isEncrypted(text) {
+  return typeof text === "string" && text.startsWith(PREFIX);
+}
+
+/** Only called when the user has opted in; the caller checks that. */
+async function encryptText(plain) {
+  if (!cryptoSupported()) return plain; // no WebCrypto: ship plaintext rather than fail the download
+  const key = await deviceKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plain));
+  return PREFIX + btoa(JSON.stringify({ iv: toB64(iv.buffer), data: toB64(cipher) }));
+}
+
+/**
+ * Reverses encryptText(). Throws with `.code === "wrong-device"` when the
+ * envelope is well-formed but this browser doesn't hold the key that made
+ * it (a different device, or localStorage was cleared) — callers use that
+ * to show a specific message instead of "not a valid profile".
+ */
+async function decryptText(text) {
+  if (!isEncrypted(text)) return text;
+  if (!cryptoSupported()) { const e = new Error("crypto-unsupported"); e.code = "wrong-device"; throw e; }
+  try {
+    const env = JSON.parse(atob(text.slice(PREFIX.length)));
+    const key = await deviceKey();
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(env.iv) }, key, fromB64(env.data));
+    return new TextDecoder().decode(plain);
+  } catch {
+    const e = new Error("decrypt-failed"); e.code = "wrong-device"; throw e;
+  }
+}
+
+
+// MatchWise v5 report — additive layer over v4.
+// -----------------------------------------------------------------------------
+// Does NOT modify js/report.js, js/report-v3.js or js/report-v4.js. Uses the
+// same card-surgery approach report-v4.js established: take the finished
+// HTML string renderReportV4() already produces and splice new cards into it
+// by walking div depth from a text anchor — never string-replace on content
+// that could appear more than once.
+//
+// What v5 adds to the couple report only (a solo profile has no "in short"
+// story, no growth-together concept and nothing to recommend to a pair):
+//   1. "In short" — one paragraph placed right after the headline ring,
+//      before any chart, so a reader gets the story in words first. Mirrors
+//      the plain-language executive-summary pattern reviewed from another
+//      build, but built only from numbers compareV4() already computed.
+//   2. Growth opportunities — see scoring-v5.js for the definition.
+//   3. Recommendations — templated action lines, never claiming more than
+//      compareV4()'s own strengths/challenges/growth support.
+//
+// GUARDRAIL: every string here is bilingual (en/ar) in the same T-object
+// pattern report-v4.js uses (T4). No key is ever read through only one
+// language — a missing translation must be a code review catch, not a
+// runtime fallback to English inside an Arabic report.
+// -----------------------------------------------------------------------------
+
+
+// Same duplication rationale report-v3.js and report-v4.js already state:
+// CATS is exported by i18n.js and extended here; the three extra categories
+// are not, so they're repeated rather than importing report-v4.js internals.
+const CATS5 = { ...CATS,
+  appreciation: { en: "Appreciation", ar: "التقدير" },
+  fairness: { en: "Fairness at Home", ar: "العدالة في المنزل" },
+  intimacy: { en: "Physical Intimacy", ar: "القرب الجسدي" },
+};
+const catNameForV5 = lang => k => (CATS5[k] ? CATS5[k][lang] : k);
+
+const esc5 = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const T5 = {
+  overviewTitle: { en: "In short", ar: "باختصار" },
+  growthTitle:   { en: "Growth Opportunities", ar: "فرص للنمو معًا" },
+  growthSub:     { en: "Areas where you both lean the same way, on your own answers alone — not a disagreement, a shared starting point.",
+                    ar: "محاور يميل فيها كلاكما بالاتجاه نفسه، بناءً على إجابة كلٍّ منكما وحده — ليست خلافًا، بل نقطة بداية مشتركة." },
+  growthEmpty:   { en: "Nothing stood out here — the two of you don't share a low lean on the same area.",
+                    ar: "لا شيء بارز هنا — لا يشترك ميلكما المنخفض في المحور نفسه." },
+  recTitle:      { en: "Recommendations", ar: "توصيات" },
+  recSub:        { en: "A few concrete places to start a conversation — not a checklist to complete.",
+                    ar: "بعض النقاط الملموسة لبدء حوار — لا قائمة مهام لإنجازها." },
+};
+
+// Each entry is a function per language so the category name can be dropped
+// straight into the sentence without a separate {a}/{b} substitution step —
+// consistent with how report-v4.js builds its own sentences inline.
+const REC_TEXT = {
+  challenge: {
+    en: cat => `Schedule an early, honest conversation about ${cat} — it is where you agree least right now.`,
+    ar: cat => `خصّصا وقتًا مبكرًا لحديث صريح عن ${cat} — فهو المحور الذي تتفقان فيه أقل من غيره حاليًا.`,
+  },
+  growth: {
+    en: cat => `Explore ${cat} together — you both lean the same way here, which makes it a natural place to grow as a pair rather than a gap to close.`,
+    ar: cat => `استكشفا ${cat} معًا — كلاكما يميل بالاتجاه نفسه هنا، ما يجعله مكانًا طبيعيًا للنمو كثنائي لا فجوة يجب سدّها.`,
+  },
+  strength: {
+    en: cat => `Keep investing in ${cat} — it is already working, and strengths fade fastest when they're taken for granted.`,
+    ar: cat => `واصلا الاستثمار في ${cat} — فهو يعمل جيدًا بالفعل، ونقاط القوة تضعف أسرع ما تضعف حين تُؤخذ كأمر مسلّم به.`,
+  },
+};
+
+const OVERVIEW_TEXT = {
+  en: (a, b, index, confidence, top, low) =>
+    `${a} and ${b} come out with an alignment index of ${index}% (${confidence}% confidence in the result). ` +
+    `Agreement runs strongest in ${top}. ` +
+    `The areas most worth deliberate attention are ${low} — not because they are weak, but because that's where an honest conversation will do the most good.`,
+  ar: (a, b, index, confidence, top, low) =>
+    `يحصل ${a} و${b} على مؤشر انسجام ${index}٪ (بموثوقية ${confidence}٪). ` +
+    `يظهر أقوى اتفاق في ${top}. ` +
+    `أما المحاور التي تستحق اهتمامًا واعيًا فهي ${low} — لا لأنها ضعيفة، بل لأنها الأماكن التي سيفيد فيها حوار صادق أكثر من غيرها.`,
+};
+
+const DEALBREAKER_NOTE = {
+  en: n => n === 1
+    ? " One answer pair flagged a serious mismatch — read the alert above before anything else here."
+    : ` ${n} answer pairs flagged a serious mismatch — read the alerts above before anything else here.`,
+  ar: n => n === 1
+    ? " أشارت إجابة واحدة إلى تعارض جوهري — راجعا التنبيه أعلاه قبل أي شيء آخر هنا."
+    : ` أشارت ${n} إجابات إلى تعارضات جوهرية — راجعا التنبيهات أعلاه قبل أي شيء آخر هنا.`,
+};
+
+const JOIN = { en: " and ", ar: " و" };
+
+function joinNames(list, lang) {
+  return list.join(JOIN[lang]);
+}
+
+function overviewCard(res, pa, pb, lang, catName) {
+  const entries = Object.entries(res.catScores || {});
+  if (entries.length < 2) return "";
+  const sortedDesc = entries.slice().sort((x, y) => y[1] - x[1]);
+  const top = sortedDesc.slice(0, 2).map(([c]) => catName(c));
+  const low = sortedDesc.slice(-2).map(([c]) => catName(c)).reverse();
+
+  let text = OVERVIEW_TEXT[lang](
+    esc5(pa.name), esc5(pb.name), res.index, res.confidence,
+    joinNames(top, lang), joinNames(low, lang)
+  );
+  if (res.alerts && res.alerts.length) text += DEALBREAKER_NOTE[lang](res.alerts.length);
+
+  return `<div class="card report-section"><h3>💡 ${T5.overviewTitle[lang]}</h3>
+    <p>${text}</p>
+  </div>`;
+}
+
+function growthCard(res, lang, catName) {
+  const cats = growthOpportunities(res);
+  const body = cats.length
+    ? `<ul class="clean">${cats.map(c => `<li>${esc5(catName(c))}</li>`).join("")}</ul>`
+    : `<p class="muted small">${T5.growthEmpty[lang]}</p>`;
+  return `<div class="card report-section"><h3>🌿 ${T5.growthTitle[lang]}</h3>
+    <p class="muted small">${T5.growthSub[lang]}</p>
+    ${body}
+  </div>`;
+}
+
+function recommendationsCard(res, lang, catName) {
+  const recs = recommendations(res);
+  if (!recs.length) return "";
+  const rows = recs.map(r => `<li>${REC_TEXT[r.type][lang](esc5(catName(r.cat)))}</li>`).join("");
+  return `<div class="card report-section"><h3>🧩 ${T5.recTitle[lang]}</h3>
+    <p class="muted small">${T5.recSub[lang]}</p>
+    <ul class="clean">${rows}</ul>
+  </div>`;
+}
+
+// Insert `newHtml` right after the card whose opening tag contains `marker`,
+// by walking div depth from that card's start — the mirror of report-v4.js's
+// replaceCard(), but appending after the card instead of replacing it.
+function insertAfterCard(html, marker, newHtml) {
+  if (!newHtml) return html;
+  const at = html.indexOf(marker);
+  if (at === -1) return html;
+  const start = html.lastIndexOf('<div class="card', at);
+  if (start === -1) return html;
+  const re = /<\/?div\b[^>]*>/g;
+  re.lastIndex = start;
+  let depth = 0, m;
+  while ((m = re.exec(html))) {
+    depth += m[0][1] === "/" ? -1 : 1;
+    if (depth === 0) {
+      const end = m.index + m[0].length;
+      return html.slice(0, end) + newHtml + html.slice(end);
+    }
+  }
+  return html;
+}
+
+// Same anchor report-v4.js's spliceBeforeSummary() uses (the closing 🧭
+// personality/love-language card) — Growth and Recommendations land after
+// the Worldview card v4 already inserted there, and before that closing card.
+const ANCHOR5 = '<div class="card report-section"><h3>🧭';
+function insertBeforeAnchor(html, newHtml) {
+  if (!newHtml) return html;
+  const i = html.lastIndexOf(ANCHOR5);
+  return i === -1 ? html + newHtml : html.slice(0, i) + newHtml + html.slice(i);
+}
+
+function renderReportV5(res, pa, pb, lang) {
+  let html = renderReportV4(res, pa, pb, lang);
+  const catName = catNameForV5(lang);
+  html = insertAfterCard(html, 'class="card score-hero', overviewCard(res, pa, pb, lang, catName));
+  html = insertBeforeAnchor(html, growthCard(res, lang, catName) + recommendationsCard(res, lang, catName));
+  return html;
+}
+
+// Growth opportunities, recommendations and "in short" are all couple-only
+// concepts — a solo profile has no partner to grow with or agree with, so
+// solo reports pass straight through to v4, byte for byte.
+function renderSoloV5(s, p, lang) {
+  return renderSoloV4(s, p, lang);
+}
+
+
+// MatchWise v6 scoring — interaction style. Additive layer over v3/v4/v5.
+// -----------------------------------------------------------------------------
+// Does NOT modify any earlier scoring module. No new questions are asked: this
+// is a re-projection of Big Five estimates the app already computes.
+//
+// WHY THIS IS NOT CALLED "DiSC"
+// -----------------------------
+// DiSC® and Everything DiSC® are registered trademarks of John Wiley & Sons,
+// and their items are proprietary. This file does not reproduce, license or
+// approximate that instrument, and nothing here should ever be presented as
+// "your DiSC result" — it is not scored against DiSC's norms and has no
+// standing to claim equivalence with it.
+//
+// What it DOES do is compute the two-dimensional interpersonal space that
+// DISC-style tools sit in, from the traits this app already measures. That is
+// defensible because the DISC plane is very close to a rotation of Big Five
+// Extraversion × Agreeableness. In a concurrent-validation sample of 9,000+
+// respondents who took both (123test, 2015):
+//
+//        O      C      E      A      N
+//   D   .186   .001   .336  -.392  -.109
+//   I   .159  -.055   .543   .067  -.297
+//   S  -.172   .069  -.280   .434   .012
+//   C  -.203  -.018  -.624  -.006   .387
+//
+// Each DISC scale is essentially a blend of two Big Five factors, and the
+// pair doing the work is Extraversion and Agreeableness. So:
+//   x = Extraversion   (reserved ..... outspoken / fast-paced)
+//   y = Agreeableness  (task-first .... people-first)
+// which reproduces the classic DISC quadrant layout: D = outspoken+task,
+// I = outspoken+people, S = reserved+people, C = reserved+task.
+//
+// IMPORTANT AND COUNTERINTUITIVE — the report must say this out loud:
+// DISC's "C" is NOT the Big Five's Conscientiousness. Its correlation with
+// it is -.018, i.e. nothing. Big Five Conscientiousness in fact correlates
+// ~.00 with ALL FOUR DISC scales (.001, -.055, .069, -.018) — the DISC model
+// does not measure it at all. Since this app shows a Big Five
+// Conscientiousness figure elsewhere in the same report, a user seeing a "C"
+// quadrant here would otherwise reasonably assume they are the same number.
+// See CLASH_NOTE in report-v6.js.
+//
+// GUARDRAIL: like the worldview axes in v4, nothing here may touch the
+// Alignment Index, the confidence figure, or deal-breaker capping. A
+// difference in interaction style is a thing to understand, not evidence
+// that a relationship will fail, and the literature does not support
+// treating it as such.
+// -----------------------------------------------------------------------------
+
+/** Big Five domains this projection needs. Both must be sufficient. */
+const STYLE_DOMAINS = ["E", "A"];
+
+/**
+ * Distance from the 50 midpoint, on either axis, below which we decline to
+ * name a quadrant at all.
+ *
+ * This is the honest answer to the standard and correct criticism of
+ * four-quadrant tools: someone at 51/49 is not "a D", they are simply near
+ * the middle, and forcing them into a corner invents a personality that the
+ * data does not show. Below this threshold the report says "balanced"
+ * instead of picking a box.
+ */
+const STYLE_MIN_CLARITY = 8;
+
+const QUADRANTS = ["driving", "inspiring", "steady", "precise"];
+
+/**
+ * One person's position in the interaction plane.
+ * Returns {sufficient:false} rather than a guess when either domain is
+ * under-answered — same rule bigFiveV3/attachmentV3 already apply.
+ */
+function interactionStyle(bigFive) {
+  if (!bigFive) return { sufficient: false };
+  const E = bigFive.E, A = bigFive.A;
+  if (!E || !A || !E.sufficient || !A.sufficient) {
+    const short = (E && !E.sufficient) ? E : A;
+    return { sufficient: false, n: short ? short.n : 0, needed: short ? short.needed : null };
+  }
+
+  const x = E.value, y = A.value;
+  const clarity = Math.max(Math.abs(x - 50), Math.abs(y - 50));
+  const balanced = clarity < STYLE_MIN_CLARITY;
+
+  // Quadrant by sign on each axis. Only meaningful when not balanced.
+  const outspoken = x >= 50, people = y >= 50;
+  const quadrant = balanced ? null
+    : outspoken ? (people ? "inspiring" : "driving")
+                : (people ? "steady" : "precise");
+
+  return { sufficient: true, x, y, clarity, balanced, quadrant, outspoken, people };
+}
+
+/**
+ * Couple-level read.
+ *
+ * `relation` is derived from which axes the two share a side of:
+ *   same     — same quadrant
+ *   adjacent — share one axis, differ on the other
+ *   opposite — differ on both (diagonal on the plane)
+ * `balanced` on either side suppresses the relation entirely: you cannot
+ * call two people "opposites" when one of them has no clear position.
+ */
+function compareInteraction(sa, sb) {
+  if (!sa || !sb || !sa.sufficient || !sb.sufficient) return { sufficient: false };
+
+  const gapX = Math.abs(sa.x - sb.x);
+  const gapY = Math.abs(sa.y - sb.y);
+
+  if (sa.balanced || sb.balanced) {
+    return { sufficient: true, relation: null, gapX, gapY, a: sa, b: sb };
+  }
+
+  const sameX = sa.outspoken === sb.outspoken;
+  const sameY = sa.people === sb.people;
+  const relation = (sameX && sameY) ? "same" : (sameX || sameY) ? "adjacent" : "opposite";
+
+  return { sufficient: true, relation, sameX, sameY, gapX, gapY, a: sa, b: sb };
+}
+
+
+// MatchWise v6 report — interaction style card. Additive layer over v5.
+// -----------------------------------------------------------------------------
+// Does NOT modify report.js / report-v3.js / report-v4.js / report-v5.js.
+// Wraps renderReportV5 / renderSoloV5 and splices one card in, using the same
+// depth-walking card surgery report-v4.js established.
+//
+// See the long header in scoring-v6.js for why this card exists, why it is
+// derived from Big Five rather than asking new questions, and why it is NOT
+// called DiSC. Two rules from that header are enforced in this file:
+//
+//   1. The strings "DiSC" and "Everything DiSC" must never appear as a claim
+//      about what this card IS. The card may reference the public DISC model
+//      (Marston, 1928) as a cross-reference, clearly marked as such. A
+//      guardrail check at the bottom of this file throws if a banned
+//      brand-claim phrasing reaches a user-facing string.
+//   2. The card must state that DISC's "C" is not the Big Five
+//      Conscientiousness shown elsewhere in this same report. Without that
+//      line the two numbers silently contradict each other.
+//
+// SVG note: this file draws a quadrant plot. Per the v5 bugfix round, every
+// chart in this app relies on the global `#app svg{direction:ltr}` rule in
+// style.css — text-anchor is direction-relative per spec, so without that
+// rule Arabic labels render outside the viewBox and vanish. Do not remove it.
+// -----------------------------------------------------------------------------
+
+
+const esc6 = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const T6 = {
+  title:    { en: "Interaction Style", ar: "أسلوب التعامل" },
+  soloSub:  { en: "Where your answers put you on the two dimensions that shape how people come across to each other: how outspoken you tend to be, and whether you reach for the task or the person first.",
+              ar: "أين تضعك إجاباتك على البعدين اللذين يشكّلان طريقة ظهورك أمام الآخرين: مدى صراحتك ومبادرتك، وهل تتّجه إلى المهمة أولًا أم إلى الشخص أولًا." },
+  pairSub:  { en: "How each of you tends to come across. Neither corner is better, and a difference here is not a problem — it is usually just the reason two people read the same conversation differently.",
+              ar: "كيف يظهر كل منكما في التعامل. لا توجد زاوية أفضل من غيرها، والاختلاف هنا ليس مشكلة — بل هو غالبًا سبب قراءة كل منكما للحوار نفسه بطريقة مختلفة." },
+  notEnough:{ en: "Not enough answers on the two traits this is built from.", ar: "لا توجد إجابات كافية على السمتين اللتين يُبنى عليهما هذا القسم." },
+  axisX:    { en: "Reserved → Outspoken", ar: "متحفّظ → صريح ومبادر" },
+  axisY:    { en: "Task first → People first", ar: "المهمة أولًا → الناس أولًا" },
+  youAre:   { en: "Your leaning", ar: "ميلك" },
+  balanced: { en: "Balanced — near the middle on both dimensions",
+              ar: "متوازن — قريب من المنتصف في كلا البعدين" },
+  balancedNote: { en: "Sitting near the centre is a real result, not a missing one. It usually means you adjust to the situation rather than leading with one style.",
+                  ar: "الوقوع قرب المنتصف نتيجة حقيقية لا ناقصة. وغالبًا ما يعني أنك تتكيّف مع الموقف بدل أن تنطلق من أسلوب واحد ثابت." },
+  crossRefTitle: { en: "If you know the DISC model", ar: "إن كنت تعرف نموذج DISC" },
+};
+
+// Plain-language quadrant names come FIRST and are the real label. The
+// classic DISC letter is offered only as a cross-reference for someone who
+// already knows that vocabulary — never as the primary identity.
+const QUAD6 = {
+  driving:   { name: { en: "Driving", ar: "المبادرة والحسم" },
+               disc: { en: "D · Dominance", ar: "D · الهيمنة" },
+               desc: { en: "Outspoken and task-first. Moves fast, says the hard thing, wants the decision made.",
+                       ar: "صريح ويبدأ بالمهمة. يتحرّك بسرعة، ويقول الأمر الصعب، ويريد حسم القرار." } },
+  inspiring: { name: { en: "Inspiring", ar: "التأثير والحماس" },
+               disc: { en: "I · Influence", ar: "I · التأثير" },
+               desc: { en: "Outspoken and people-first. Talks things out, brings energy, persuades rather than instructs.",
+                       ar: "صريح ويبدأ بالناس. يناقش الأمور بصوت عالٍ، ويضفي حماسًا، ويُقنع بدل أن يُملي." } },
+  steady:    { name: { en: "Steady", ar: "الثبات والدعم" },
+               disc: { en: "S · Steadiness", ar: "S · الثبات" },
+               desc: { en: "Reserved and people-first. Listens more than speaks, keeps the peace, values a settled rhythm.",
+                       ar: "متحفّظ ويبدأ بالناس. يستمع أكثر مما يتكلّم، ويحافظ على السلام، ويقدّر الإيقاع الهادئ." } },
+  precise:   { name: { en: "Precise", ar: "الدقة والتروّي" },
+               disc: { en: "C · Conscientiousness", ar: "C · التدقيق" },
+               desc: { en: "Reserved and task-first. Thinks before speaking, wants it right, is uneasy with a rushed call.",
+                       ar: "متحفّظ ويبدأ بالمهمة. يفكّر قبل أن يتكلّم، ويريد إتقان الأمر، ولا يرتاح للقرار المتسرّع." } },
+};
+
+// The disambiguation that makes the cross-reference honest rather than
+// misleading. Sourced in Build-MatchWise-v6.md.
+const CLASH_NOTE = {
+  en: "One catch worth knowing: the DISC model's \"C\" is not the same thing as the Conscientiousness figure shown elsewhere in this report. In a 9,000-person study comparing the two, they correlated about zero — DISC's C is about being reserved and precise, not about being organised or dependable. The two numbers are allowed to disagree.",
+  ar: "ملاحظة تستحق الانتباه: حرف \"C\" في نموذج DISC ليس هو نفسه مقياس الانضباط الظاهر في موضع آخر من هذا التقرير. في دراسة على أكثر من ٩٠٠٠ شخص قارنت بينهما، كان الارتباط صفرًا تقريبًا — فـ C في DISC تعني التحفّظ والدقة، لا التنظيم والاعتمادية. ومن الطبيعي أن يختلف الرقمان.",
+};
+
+const RELATION6 = {
+  same: {
+    en: (a, b, q) => `${a} and ${b} land in the same corner — ${q}. You will recognise each other's instincts easily. The thing to watch is that you also share the same blind spot: whatever that style under-weights, neither of you is naturally covering.`,
+    ar: (a, b, q) => `${a} و${b} في الزاوية نفسها — ${q}. ستتعرّفان على دوافع بعضكما بسهولة. لكن انتبها إلى أنكما تشتركان أيضًا في النقطة العمياء نفسها: ما يهمله هذا الأسلوب لن يغطّيه أي منكما تلقائيًا.`,
+  },
+  adjacent: {
+    en: (a, b) => `${a} and ${b} share one of the two dimensions and differ on the other. That is the easiest combination to work with: there is enough common ground to feel understood, and enough difference that one of you notices what the other misses.`,
+    ar: (a, b) => `${a} و${b} يتفقان في أحد البعدين ويختلفان في الآخر. وهذه أسهل التركيبات: أرضية مشتركة كافية للشعور بالتفاهم، واختلاف كافٍ ليلاحظ أحدكما ما يفوت الآخر.`,
+  },
+  opposite: {
+    en: (a, b) => `${a} and ${b} sit on opposite corners. This is not a warning — opposite styles often work well together — but it does mean the same words can land very differently. Expect to translate for each other more often than couples who share a corner.`,
+    ar: (a, b) => `${a} و${b} في زاويتين متقابلتين. هذا ليس تحذيرًا — فالأساليب المتقابلة كثيرًا ما تنسجم — لكنه يعني أن الكلمات نفسها قد تصل بشكل مختلف تمامًا. توقّعا الحاجة إلى توضيح المقصود لبعضكما أكثر من غيركما.`,
+  },
+};
+
+const BALANCED_PAIR = {
+  en: "At least one of you sits near the centre of both dimensions, so there is no clear corner to compare. That is a real finding, not a gap — it usually means adapting to the situation rather than leading with one fixed style.",
+  ar: "أحدكما على الأقل يقع قرب منتصف البعدين، فلا توجد زاوية واضحة للمقارنة. وهذه نتيجة حقيقية لا نقص — وغالبًا ما تعني التكيّف مع الموقف بدل الانطلاق من أسلوب واحد ثابت.",
+};
+
+const DISCLAIMER6 = {
+  en: "Built by re-reading the personality answers you already gave — no extra questions, and it never changes the Alignment Index. It describes how you tend to come across, not what you are capable of, and a short questionnaire cannot capture either fully.",
+  ar: "مبني على إعادة قراءة إجابات الشخصية التي قدّمتها بالفعل — بلا أسئلة إضافية، ولا يغيّر مؤشر الانسجام إطلاقًا. وهو يصف كيف تظهر عادةً في التعامل، لا ما أنت قادر عليه، ولا يمكن لاستبيان قصير أن يحيط بأي منهما.",
+};
+
+/**
+ * Quadrant plot. x = outspokenness (Extraversion), y = people-focus
+ * (Agreeableness) plotted upward, so the corners land in the classic DISC
+ * arrangement: top-right people+outspoken, bottom-right task+outspoken.
+ * `pts`: [{x, y, name, color}], one or two.
+ */
+function stylePlot6(pts, lang) {
+  const S = 250, PAD = 40, W = S + PAD * 2;
+  const px = v => PAD + (v / 100) * S;
+  const py = v => PAD + S - (v / 100) * S;
+  const q = k => QUAD6[k].name[lang];
+  const dots = pts.map(p => `
+    <circle cx="${px(p.x)}" cy="${py(p.y)}" r="8" fill="${p.color}" stroke="var(--card)" stroke-width="2.5"/>
+    ${p.name ? `<text x="${px(p.x)}" y="${py(p.y) - 14}" font-size="11" font-weight="700" text-anchor="middle" fill="${p.color}">${esc6(p.name)}</text>` : ""}
+  `).join("");
+  return `<svg viewBox="0 0 ${W} ${W}" width="100%" style="max-width:330px;display:block;margin:0 auto" role="img">
+    <rect x="${PAD}" y="${PAD}" width="${S/2}" height="${S/2}" fill="var(--accent2)" fill-opacity=".06"/>
+    <rect x="${PAD+S/2}" y="${PAD}" width="${S/2}" height="${S/2}" fill="var(--ok)" fill-opacity=".07"/>
+    <rect x="${PAD}" y="${PAD+S/2}" width="${S/2}" height="${S/2}" fill="var(--warn)" fill-opacity=".08"/>
+    <rect x="${PAD+S/2}" y="${PAD+S/2}" width="${S/2}" height="${S/2}" fill="var(--accent)" fill-opacity=".06"/>
+    <rect x="${PAD}" y="${PAD}" width="${S}" height="${S}" fill="none" stroke="var(--line)"/>
+    <line x1="${PAD+S/2}" y1="${PAD}" x2="${PAD+S/2}" y2="${PAD+S}" stroke="var(--line)"/>
+    <line x1="${PAD}" y1="${PAD+S/2}" x2="${PAD+S}" y2="${PAD+S/2}" stroke="var(--line)"/>
+    <!-- Quadrant names sit at the OUTER edge of each quadrant, not hugging
+         the centre crosshair. Profiles cluster near the middle (that is what
+         a 0-100 trait scale does), so centre-hugging labels collide with the
+         person dots exactly when the chart is most crowded. -->
+    <text x="${PAD+S*0.25}" y="${PAD+15}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${esc6(q("steady"))}</text>
+    <text x="${PAD+S*0.75}" y="${PAD+15}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${esc6(q("inspiring"))}</text>
+    <text x="${PAD+S*0.25}" y="${PAD+S-8}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${esc6(q("precise"))}</text>
+    <text x="${PAD+S*0.75}" y="${PAD+S-8}" font-size="9.5" text-anchor="middle" fill="var(--muted)">${esc6(q("driving"))}</text>
+    <text x="${PAD+S/2}" y="${PAD+S+24}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc6(T6.axisX[lang])}</text>
+    <text x="${PAD-14}" y="${PAD+S/2}" font-size="10" text-anchor="middle" fill="var(--muted)" transform="rotate(-90 ${PAD-14} ${PAD+S/2})">${esc6(T6.axisY[lang])}</text>
+    ${dots}
+  </svg>`;
+}
+
+/** One person's named result line, or the balanced equivalent. */
+function styleLine6(style, lang, who) {
+  if (style.balanced) {
+    return `<p class="small"><b>${esc6(who)}</b> — ${esc6(T6.balanced[lang])}</p>`;
+  }
+  const Q = QUAD6[style.quadrant];
+  return `<p class="small" style="margin-bottom:4px"><b>${esc6(who)}</b> — <b>${esc6(Q.name[lang])}</b>
+    <span class="muted">(${esc6(Q.disc[lang])})</span></p>
+    <p class="muted small" style="margin-bottom:10px">${esc6(Q.desc[lang])}</p>`;
+}
+
+function crossRef6(lang) {
+  return `<details style="margin-top:10px">
+    <summary class="ans-summary">${esc6(T6.crossRefTitle[lang])}</summary>
+    <p class="muted small" style="margin-top:8px">${esc6(CLASH_NOTE[lang])}</p>
+  </details>`;
+}
+
+function insufficient6(style, lang) {
+  return `<div class="card report-section"><h3>🎭 ${T6.title[lang]}</h3>
+    <p class="muted small">${esc6(T6.notEnough[lang])}</p></div>`;
+}
+
+/** Interaction-style card for one person. */
+function interactionSolo(bigFive, p, lang) {
+  const style = interactionStyle(bigFive);
+  if (!style.sufficient) return insufficient6(style, lang);
+  return `<div class="card report-section"><h3>🎭 ${T6.title[lang]}</h3>
+    <p class="muted small" style="margin-bottom:10px">${esc6(T6.soloSub[lang])}</p>
+    ${stylePlot6([{ x: style.x, y: style.y, name: p.name, color: "var(--accent2)" }], lang)}
+    <div class="report-section" style="margin-top:12px">
+      ${styleLine6(style, lang, p.name)}
+      ${style.balanced ? `<p class="muted small">${esc6(T6.balancedNote[lang])}</p>` : ""}
+    </div>
+    ${crossRef6(lang)}
+    <p class="disclaimer">${esc6(DISCLAIMER6[lang])}</p>
+  </div>`;
+}
+
+/** Interaction-style card for a couple. */
+function interactionPair(bigFive, pa, pb, lang) {
+  if (!bigFive || !bigFive.a || !bigFive.b) return "";
+  const sa = interactionStyle(bigFive.a), sb = interactionStyle(bigFive.b);
+  const cmp = compareInteraction(sa, sb);
+  if (!cmp.sufficient) return insufficient6(sa.sufficient ? sb : sa, lang);
+
+  let verdict;
+  if (!cmp.relation) {
+    verdict = `<p class="muted small">${esc6(BALANCED_PAIR[lang])}</p>`;
+  } else if (cmp.relation === "same") {
+    verdict = `<p class="small">${esc6(RELATION6.same[lang](pa.name, pb.name, QUAD6[sa.quadrant].name[lang]))}</p>`;
+  } else {
+    verdict = `<p class="small">${esc6(RELATION6[cmp.relation][lang](pa.name, pb.name))}</p>`;
+  }
+
+  return `<div class="card report-section"><h3>🎭 ${T6.title[lang]}</h3>
+    <p class="muted small" style="margin-bottom:10px">${esc6(T6.pairSub[lang])}</p>
+    <div class="legend"><span><b style="background:var(--accent)"></b>${esc6(pa.name)}</span>
+      <span><b style="background:var(--accent2)"></b>${esc6(pb.name)}</span></div>
+    ${stylePlot6([
+      { x: sa.x, y: sa.y, name: pa.name, color: "var(--accent)" },
+      { x: sb.x, y: sb.y, name: pb.name, color: "var(--accent2)" },
+    ], lang)}
+    <div class="report-section" style="margin-top:12px">
+      ${styleLine6(sa, lang, pa.name)}
+      ${styleLine6(sb, lang, pb.name)}
+      ${verdict}
+    </div>
+    ${crossRef6(lang)}
+    <p class="disclaimer">${esc6(DISCLAIMER6[lang])}</p>
+  </div>`;
+}
+
+// Placed ahead of v3's closing 🧭 summary card, same anchor and same
+// fallback-to-append behaviour report-v4.js and report-v5.js both use.
+const ANCHOR6 = '<div class="card report-section"><h3>🧭';
+function spliceBefore6(html, card) {
+  if (!card) return html;
+  const i = html.lastIndexOf(ANCHOR6);
+  return i === -1 ? html + card : html.slice(0, i) + card + html.slice(i);
+}
+
+function renderReportV6(res, pa, pb, lang) {
+  return spliceBefore6(renderReportV5(res, pa, pb, lang), interactionPair(res.bigFive, pa, pb, lang));
+}
+
+function renderSoloV6(s, p, lang) {
+  return spliceBefore6(renderSoloV5(s, p, lang), interactionSolo(s.bigFive, p, lang));
+}
+
+// Guardrail check, run at load — mirrors the ideology check in report-v4.js.
+// The public DISC model may be referenced as a cross-reference (QUAD6[].disc
+// and CLASH_NOTE do exactly that); claiming to BE the DiSC product may not.
+{
+  const claims = /everything\s*disc|your\s+disc\s+(result|profile|score)|disc\s*®|official\s+disc/i;
+  const all = JSON.stringify([T6, QUAD6, CLASH_NOTE, RELATION6, BALANCED_PAIR, DISCLAIMER6]);
+  if (claims.test(all))
+    throw new Error("report-v6: a user-facing string claims to be the DiSC product");
+  if (!/9,?000|٩٠٠٠/.test(JSON.stringify(CLASH_NOTE)))
+    throw new Error("report-v6: the C-vs-Conscientiousness note lost its evidence");
+  if (STYLE_MIN_CLARITY <= 0)
+    throw new Error("report-v6: clarity threshold disabled — quadrants would be forced on centred profiles");
+}
+
+
 // MatchWise — app controller
 
 // ---------- v4 routing ----------
@@ -4206,7 +5070,7 @@ function redactAnswerList(s) {
 }
 
 const $ = s => document.querySelector(s);
-const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme" };
+const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports" };
 
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -4234,15 +5098,30 @@ function decodeProfile(code) {
 // ---------- i18n / theme ----------
 // ---------- profile files (.json) ----------
 // A downloadable, human-readable backup. Re-uploadable to regenerate the report.
-function profileToFile(p) {
-  return JSON.stringify({
+//
+// v5: encryption is opt-in (see #encryptExportsCheck) and OFF by default —
+// see the guardrail note in crypto-v5.js. When it's off this produces
+// exactly the plain JSON it always has; nothing reading these files today
+// has to change.
+const encryptExportsOn = () => localStorage.getItem(LS.encrypt) === "1";
+
+async function profileToFile(p) {
+  const plain = JSON.stringify({
     app: "MatchWise", version: isV4(p) ? 4 : isV3Answers(p.answers) ? 3 : 2, name: p.name, date: p.date,
     code: p.code || undefined, answers: p.answers,
   }, null, 2);
+  return encryptExportsOn() ? encryptText(plain) : plain;
 }
-function fileToProfile(text) {
+
+/**
+ * Throws with `.code === "wrong-device"` (see crypto-v5.js) when the text is
+ * an encrypted envelope this browser cannot open — callers show a specific
+ * message for that instead of "not a valid profile".
+ */
+async function fileToProfile(text) {
+  const plain = isEncrypted(text) ? await decryptText(text) : text;
   try {
-    const o = JSON.parse(text);
+    const o = JSON.parse(plain);
     // accept our own file format, or a bare {name, answers}
     const name = o.name ?? o.n, answers = o.answers ?? o.a;
     if (!name || !answers || typeof answers !== "object") return null;
@@ -4250,9 +5129,10 @@ function fileToProfile(text) {
              code: o.code || null, answers };
   } catch { return null; }
 }
-function downloadProfile(p) {
+async function downloadProfile(p) {
   const safe = String(p.name).replace(/[^\w؀-ۿ-]+/g, "_").slice(0, 20);
-  const blob = new Blob([profileToFile(p)], { type: "application/json" });
+  const text = await profileToFile(p);
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -4268,8 +5148,11 @@ function showSolo(p) {
   const v4 = isV4(p), v3 = isV3Answers(p.answers);
   let s = v4 ? soloSummaryV4(p) : v3 ? soloSummaryV3(p) : soloSummary(p);
   if (p.imported) s = redactAnswerList(s);
-  $("#soloRoot").innerHTML = v4 ? renderSoloV4(s, p, lang)
+  $("#soloRoot").innerHTML = v4 ? renderSoloV6(s, p, lang)
     : v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
+  // v5: a demo profile is illustrative sample data, never a real person's —
+  // it must not leave the device as a downloadable file either.
+  $("#soloDownloadBtn").style.display = p.demo ? "none" : "";
   show("solo");
 }
 
@@ -4314,16 +5197,20 @@ function renderProfileList() {
   for (const p of list) {
     const div = document.createElement("div");
     div.className = "profile-item";
+    // v5: demo profiles carry a visible tag and no download button — they
+    // are sample data, never a real person's file. See demo-v5.js.
     div.innerHTML = `<span>👤 <b></b> <span class="muted small">${new Date(p.date).toLocaleDateString()}</span>
+        ${p.demo ? `<span class="demo-badge">${t("demoTag", lang)}</span>` : ""}
         ${p.code ? `<div class="code-chip">${formatCode(p.code)}</div>` : ""}</span>
       <span class="item-actions">
         <button class="mini prev">${t("previewBtn", lang)}</button>
-        <button class="mini dl" title="Download">⤓</button>
+        ${p.demo ? "" : `<button class="mini dl" title="Download">⤓</button>`}
         <button class="del" title="Delete">✕</button>
       </span>`;
     div.querySelector("b").textContent = p.name;
     div.querySelector(".prev").onclick = () => showSolo(p);
-    div.querySelector(".dl").onclick = () => downloadProfile(p);
+    const dl = div.querySelector(".dl");
+    if (dl) dl.onclick = () => downloadProfile(p);
     div.querySelector(".del").onclick = () => { saveProfiles(list.filter(x => x.id !== p.id)); renderProfileList(); fillSelects(); };
     box.appendChild(div);
   }
@@ -4448,6 +5335,27 @@ async function publishCode(profile) {
 }
 
 // ---------- compare ----------
+// v5 fix: the couple report used to be drawn once and never redrawn, so
+// switching language while screen-report was open left the report showing
+// its original language even though the rest of the app switched. `lastPair`
+// remembers who is being compared so the language toggle (below) can call
+// this again instead of only re-running the quiz/solo screens.
+let lastPair = null;
+function renderCoupleReport(pa, pb) {
+  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  if (isV4(pa) || isV4(pb)) {
+    // v6 wraps v5 (which wraps v4) and adds the Interaction Style card.
+    // Every layer is presentation-only: compareV4()'s index, confidence and
+    // deal-breaker capping are untouched by both.
+    $("#reportRoot").innerHTML = renderReportV6(compareV4(pa, pb), pa, pb, lang);
+  } else if (bothV2) {
+    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
+  } else {
+    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
+  }
+  lastPair = { pa, pb };
+  show("report");
+}
 function generate() {
   const list = getProfiles();
   const pa = list.find(p => p.id === $("#selectA").value);
@@ -4455,15 +5363,7 @@ function generate() {
   const err = $("#compareError");
   if (!pa || !pb || pa.id === pb.id) { err.textContent = t("needTwo", lang); return; }
   err.textContent = "";
-  const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
-  if (isV4(pa) || isV4(pb)) {
-    $("#reportRoot").innerHTML = renderReportV4(compareV4(pa, pb), pa, pb, lang);
-  } else if (bothV2) {
-    $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
-  } else {
-    $("#reportRoot").innerHTML = renderReportV3(compareV3(pa, pb), pa, pb, lang);
-  }
-  show("report");
+  renderCoupleReport(pa, pb);
 }
 
 // ---------- events ----------
@@ -4497,7 +5397,17 @@ document.addEventListener("click", e => {
   }
 });
 $("#backBtn").onclick = () => { if (advancing) return; if (quiz.i > 0) { quiz.i--; renderQuestion(); } };
-$("#langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); if ($("#screen-quiz").classList.contains("active")) renderQuestion(); };
+// v5 fix: previously only the quiz screen re-rendered on a language switch,
+// so a couple report or solo preview kept showing its original language
+// while the rest of the app (including the report's own headings, which
+// come from applyLang()'s data-i18n pass) switched underneath it.
+$("#langBtn").onclick = () => {
+  lang = lang === "en" ? "ar" : "en";
+  applyLang();
+  if ($("#screen-quiz").classList.contains("active")) renderQuestion();
+  if ($("#screen-solo").classList.contains("active") && lastSolo) showSolo(lastSolo);
+  if ($("#screen-report").classList.contains("active") && lastPair) renderCoupleReport(lastPair.pa, lastPair.pb);
+};
 $("#themeBtn").onclick = () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); };
 $("#copyBtn").onclick = async () => {
   await navigator.clipboard.writeText($("#shareCode").value).catch(() => $("#shareCode").select());
@@ -4606,7 +5516,15 @@ $("#fileInput").onchange = async e => {
   const f = e.target.files[0];
   const msg = $("#fileMsg");
   if (!f) return;
-  const p = fileToProfile(await f.text());
+  let p;
+  try {
+    p = await fileToProfile(await f.text());
+  } catch (err) {
+    e.target.value = "";
+    msg.style.color = "";
+    msg.textContent = err && err.code === "wrong-device" ? t("fileWrongDevice", lang) : t("fileBad", lang);
+    return;
+  }
   e.target.value = "";           // allow re-picking the same file
   if (!p) { msg.style.color = ""; msg.textContent = t("fileBad", lang); return; }
   const list = getProfiles(); list.push(p); saveProfiles(list);
@@ -4614,8 +5532,31 @@ $("#fileInput").onchange = async e => {
   showSolo(p);                   // straight to their report
 };
 
+// ---------- v5: demo profiles ----------
+// One click, no fetch: buildDemoProfiles() generates both answer sets in the
+// browser from the live question bank (see demo-v5.js). Loaded at most once
+// — if the two demo ids are already saved, this only opens the compare
+// screen with them pre-selected rather than duplicating the rows.
+$("#demoBtn").onclick = () => {
+  const list = getProfiles();
+  const already = DEMO_IDS.every(id => list.some(p => p.id === id));
+  if (!already) { saveProfiles([...list.filter(p => !DEMO_IDS.includes(p.id)), ...buildDemoProfiles()]); renderProfileList(); }
+  fillSelects();
+  const fresh = getProfiles();
+  const a = fresh.find(p => p.id === "demo_a"), b = fresh.find(p => p.id === "demo_b");
+  if (a) $("#selectA").value = a.id;
+  if (b) $("#selectB").value = b.id;
+  $("#compareError").style.color = "var(--ok)";
+  $("#compareError").textContent = t("demoLoaded", lang);
+  show("compare");
+};
+
 // ---------- PWA ----------
 
+
+// ---------- v5: encrypt-exports toggle ----------
+$("#encryptExportsCheck").checked = encryptExportsOn();
+$("#encryptExportsCheck").onchange = e => localStorage.setItem(LS.encrypt, e.target.checked ? "1" : "0");
 
 // ---------- init ----------
 applyTheme();

@@ -144,9 +144,71 @@ The attachment section follows the two-dimension model of the ECR-S (Wei et al.,
 
 The report's "How this was scored" panel shows the published reliability of those original instruments, clearly labelled as *reference only*: MatchWise's own wording is adapted and has not been separately validated.
 
+## What's new in v5
+
+Reviewed against a second MatchWise prototype the user built separately, and
+ported the product ideas worth keeping — without touching the scoring engine
+or any v2–v4 guardrail. Full rationale, including what was deliberately
+*not* ported and why, is in `Build-MatchWise-v5.md`.
+
+- **"In short"** — one plain-language paragraph right after the headline
+  ring, before any chart: names, index, confidence, strongest and most
+  worth-discussing categories.
+- **Growth Opportunities** — categories where both partners' *own* lean
+  sits low on the same thing. Different from Topics to Discuss: this is
+  where you agree while both quietly avoiding the same area, which a
+  disagreement-based section can't catch.
+- **Recommendations** — a short, templated closing list: the weakest
+  agreement area, a shared growth area, and up to three strengths worth
+  protecting.
+- **Load demo profiles** — one tap on the dashboard generates two sample
+  profiles live from the current question bank (not hand-typed, so they
+  can't drift out of sync with it) and opens a full report instantly.
+  Clearly tagged **Demo**; never downloadable, never uploaded anywhere.
+- **How it works** — a four-step strip on the home screen explaining the
+  flow before asking for any answers.
+- **Encrypted export — opt-in, off by default.** A checkbox on the home
+  screen turns on AES-GCM-256 encryption for downloaded `.json` files,
+  keyed to this device only. Off by default because every file this app
+  has ever exported is plain JSON and something outside the app may
+  already read those; turning it on is the user's call, not a silent
+  default change.
+
+## Interaction Style (v6)
+
+The report has a section called **Interaction Style**: a quadrant plot showing
+how each person tends to come across, on two dimensions — reserved ↔ outspoken,
+and task-first ↔ people-first.
+
+This is the DISC-family read, built without asking a single extra question.
+It works because the DISC plane is very close to a rotation of two traits the
+app already measures: in a 9,000-person study of people who took both, each
+DISC scale came out as a blend of about two Big Five factors, with
+Extraversion and Agreeableness doing nearly all the work.
+
+It is deliberately **not** called a DiSC result. DiSC® is a Wiley trademark
+with proprietary items; this is a projection of our own Big Five estimates,
+not that instrument and not scored against its norms. The quadrants are named
+in plain language — Driving, Inspiring, Steady, Precise — and the classic
+DISC letter appears only as a cross-reference for people who know that
+vocabulary.
+
+One thing the section says out loud, because the report would otherwise
+contradict itself: **DISC's "C" is not the Conscientiousness figure shown
+elsewhere in this report.** They correlated about zero in that same study.
+DISC's C means reserved and precise; Big Five Conscientiousness means
+organised and dependable. The two numbers are allowed to disagree.
+
+Someone sitting within 8 points of the midpoint on both axes is reported as
+**balanced** rather than pushed into a corner — a 51/49 split is not a
+personality type, and forcing one would invent a result the data doesn't
+support. If either partner is balanced, no couple-level comparison is drawn.
+
+Like the worldview axes, this never moves the Alignment Index.
+
 ## Files
 
-`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — and three additive v4 modules — `questions-v4.js`, `scoring-v4.js`, `report-v4.js` — which layer on top without modifying anything below them. `Build-MatchWise-v4.md` is the v4 spec, including the research it was built from.
+`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — three additive v4 modules — `questions-v4.js`, `scoring-v4.js`, `report-v4.js` — four additive v5 modules — `scoring-v5.js`, `report-v5.js`, `demo-v5.js`, `crypto-v5.js` — and two additive v6 modules — `scoring-v6.js`, `report-v6.js` — which layer on top without modifying anything below them. `Build-MatchWise-v4.md`, `Build-MatchWise-v5.md` and `Build-MatchWise-v6.md` are the v4, v5 and v6 specs, including the research and review each was built from.
 
 Every `import` in the `js/` folder must stay on one line. `build-single.js` flattens the modules into the offline file by deleting whole lines that start with `import`, so a multi-line import leaves a dangling `} from "…";` behind. The build now fails loudly on that rather than shipping a broken bundle.
 

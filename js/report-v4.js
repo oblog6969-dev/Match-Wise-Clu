@@ -184,7 +184,17 @@ function ringGauge(index, confidence, lang, label) {
  */
 function radarDual(series, cats, lang, catName) {
   const keys = cats;
-  const n = keys.length, cx = 175, cy = 165, R = 112;
+  // v5 fix: cx used to be 175 in a 350-wide viewBox (dead-centered, but with
+  // only ~40px margin past the label ring on either side). With up to 16
+  // categories on this chart, a long label landing near the 0°/180° spoke —
+  // where text-anchor pushes it AWAY from center rather than centering it —
+  // could run past the viewBox edge and get clipped by SVG's default
+  // overflow:hidden. Arabic category names are frequently longer than their
+  // English counterparts, so this showed up there first (e.g. "تخطيط
+  // المستقبل" / Future Planning). Widening the canvas to 430 and keeping cx
+  // centered (215) adds ~40px of margin on BOTH sides without touching the
+  // angle math, the anchor logic, or the visual radius (R) at all.
+  const n = keys.length, cx = 215, cy = 165, R = 112;
   if (!n) return "";
   // Angle step is negated in RTL so the categories read round the circle in
   // the same direction as the language.
@@ -209,7 +219,7 @@ function radarDual(series, cats, lang, catName) {
     const anchor = Math.abs(x - cx) < 12 ? "middle" : (x > cx ? "start" : "end");
     return `<text x="${x}" y="${y + 3}" font-size="9" text-anchor="${anchor}" fill="var(--muted)">${esc4(catName(k))}</text>`;
   }).join("");
-  return `<svg viewBox="0 0 350 330" width="100%" style="max-width:430px;display:block;margin:0 auto" role="img">
+  return `<svg viewBox="0 0 430 330" width="100%" style="max-width:430px;display:block;margin:0 auto" role="img">
     ${grid}${spokes}${polys}${labels}</svg>`;
 }
 

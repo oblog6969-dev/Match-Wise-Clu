@@ -12,6 +12,19 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
+/* v5 fix: every chart in report-v3.js/report-v4.js is hand-rolled SVG that
+   flips its OWN coordinates for Arabic (see the comments in those files) —
+   they assume text-anchor="start"/"end" means the visual left/right edge.
+   But CSS `direction` inherits from <html dir="rtl"> straight into SVG, and
+   per the SVG spec text-anchor start/end are DIRECTION-RELATIVE, not visual:
+   under an inherited rtl direction the browser reinterprets "end" as the
+   logical (visually left) edge instead, which collided with the charts'
+   own manual mirroring and pushed Arabic labels outside the chart's
+   viewBox — invisible, not misplaced. Forcing ltr on the SVG itself (not
+   its Arabic text content, which still shapes and orders correctly per the
+   Unicode bidi algorithm regardless of this property) restores the plain
+   visual semantics every chart's math already assumes. */
+#app svg{direction:ltr}
 body{
   background:var(--bg); color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Arabic",sans-serif;
@@ -276,3 +289,28 @@ ul.clean li:last-child{border:none}
     --text: #16181f; --muted: #555a68; --line: #ccccd6; --card: #ffffff; --bg: #ffffff;
   }
 }
+
+/* ── v5 additions ──────────────────────────────────────────────────────── */
+/* Home screen "how it works" strip. Plain numbered rows, not icon tiles —
+   deliberately: an oversized unstyled glyph icon was one of the concrete
+   problems found reviewing another build's landing page. */
+.hiw-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.hiw-step { display: flex; gap: 12px; align-items: flex-start; }
+.hiw-num {
+  flex: 0 0 26px; height: 26px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent2) 14%, transparent); color: var(--accent2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .82rem; font-weight: 700;
+}
+.hiw-step span > b { font-size: .95rem; }
+
+/* Demo profiles: same profile-item row, tagged so it is never mistaken for
+   a real saved profile. */
+.demo-badge {
+  display: inline-block; margin-inline-start: 6px; padding: 2px 8px;
+  border-radius: 99px; font-size: .72rem; font-weight: 700;
+  background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn);
+}
+#demoBtn { margin-top: 10px; }
+
+.encrypt-toggle { display: flex; align-items: center; gap: 10px; font-size: .92rem; cursor: pointer; margin-top: 14px; font-weight: 500; }

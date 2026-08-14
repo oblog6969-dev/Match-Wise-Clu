@@ -25,6 +25,14 @@ const bundle = [
   strip(rd('js/questions-v4.js')),
   strip(rd('js/scoring-v4.js')),
   strip(rd('js/report-v4.js')),
+  // v5 layer, same dependency-order rule. See Build-MatchWise-v5.md.
+  strip(rd('js/scoring-v5.js')),
+  strip(rd('js/demo-v5.js')),
+  strip(rd('js/crypto-v5.js')),
+  strip(rd('js/report-v5.js')),
+  // v6 layer — interaction style. Depends on report-v5.js, so it follows it.
+  strip(rd('js/scoring-v6.js')),
+  strip(rd('js/report-v6.js')),
   strip(rd('js/app.js')).replace(/if \("serviceWorker"[\s\S]*?\{\}\);/, ''),
 ].join('\n\n');
 
@@ -47,7 +55,10 @@ if (/src="js\/|href="style\.css/.test(html)) problems.push('external reference')
 for (const key of ['importBtn:', 'levelLow:', 'sTitle:', 'previewBtn:',
                    'previewTitle:', 'create_profile', 'get_profile', 'SUPABASE_URL',
                    'v3Methodology:', 'intimacyToggle', 'ECR-S',
-                   'genderQ:', 'REWRITES_V4', 'worldviewAxes', 'axis4-track'])
+                   'genderQ:', 'REWRITES_V4', 'worldviewAxes', 'axis4-track',
+                   'growthOpportunities', 'renderReportV5', 'buildDemoProfiles', 'demoBtn',
+                   'MWENC1', 'encryptExportsCheck',
+                   'interactionStyle', 'renderReportV6', 'STYLE_MIN_CLARITY'])
   if (!html.includes(key)) problems.push('missing ' + key);
 
 // The service worker precaches an explicit file list. A js/ file that exists
@@ -59,7 +70,7 @@ const swAssets = (sw.match(/const ASSETS = \[([\s\S]*?)\];/) || [, ''])[1];
 for (const f of fs.readdirSync('js').filter(f => f.endsWith('.js')))
   if (!swAssets.includes(`js/${f}`)) problems.push(`sw.js ASSETS missing js/${f}`);
 // And a stale CACHE name means installed phones never see any of it.
-if (!/const CACHE = "matchwise-v4"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
+if (!/const CACHE = "matchwise-v6"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
 
 if (problems.length) { console.error('BUILD PROBLEMS:', problems); process.exit(1); }
 console.log('built MatchWise-preview.html:', html.length, 'bytes — checks passed');

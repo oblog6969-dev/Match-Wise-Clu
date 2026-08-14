@@ -35,9 +35,27 @@
         <button class="btn ghost" data-action="go-compare" data-i18n="compareBtn">Compare two profiles</button>
       </div>
     </div>
+    <!-- v5: how-it-works strip. Purely informational, no data or logic. -->
+    <div class="card">
+      <h3 data-i18n="howTitle">How it works</h3>
+      <ol class="hiw-list">
+        <li class="hiw-step"><span class="hiw-num">1</span>
+          <span><b data-i18n="how1Title">Assess</b><br><span class="muted small" data-i18n="how1Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">2</span>
+          <span><b data-i18n="how2Title">Get your code</b><br><span class="muted small" data-i18n="how2Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">3</span>
+          <span><b data-i18n="how3Title">Compare</b><br><span class="muted small" data-i18n="how3Desc"></span></span></li>
+        <li class="hiw-step"><span class="hiw-num">4</span>
+          <span><b data-i18n="how4Title">Stay private</b><br><span class="muted small" data-i18n="how4Desc"></span></span></li>
+      </ol>
+    </div>
     <div class="card" id="savedProfilesCard">
       <h3 data-i18n="savedProfiles">Saved profiles</h3>
       <div id="profileList" class="profile-list"></div>
+      <!-- v5: one-click sample data so a new user sees a full report before
+           answering anything. Never uploaded, never exportable — see demo-v5.js. -->
+      <button class="btn ghost" id="demoBtn" data-i18n="demoBtn">Load demo profiles</button>
+      <p class="muted small" data-i18n="demoNote"></p>
     </div>
     <div class="card">
       <h3 data-i18n="uploadTitle">Have a profile file?</h3>
@@ -45,6 +63,9 @@
       <input type="file" id="fileInput" accept=".json,application/json" hidden>
       <button class="btn ghost big" id="uploadBtn" data-i18n="uploadBtn">Choose file…</button>
       <p id="fileMsg" class="error small"></p>
+      <!-- v5: opt-in, off by default — see the guardrail in crypto-v5.js. -->
+      <label class="encrypt-toggle"><input type="checkbox" id="encryptExportsCheck"> <span data-i18n="encryptExports">Encrypt my exported file</span></label>
+      <p class="muted small" data-i18n="encryptExportsNote"></p>
     </div>
     <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
   </section>

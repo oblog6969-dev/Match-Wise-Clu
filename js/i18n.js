@@ -115,6 +115,24 @@ export const STR = {
   v3MethodSimilarity:{ en: "Research note: being similar to your partner does not, by itself, predict a happy relationship. This report maps where you differ so you can talk about it — not to score you against each other.", ar: "ملاحظة بحثية: التشابه مع شريكك لا يتنبأ وحده بعلاقة سعيدة. هذا التقرير يرسم أماكن اختلافكما لتتحدثا عنها — لا ليقيّم أحدكما مقابل الآخر." },
   v3IndexTitle:      { en: "Alignment Index", ar: "مؤشر الانسجام" },
   v3NotAPrediction:  { en: "This is a starting point for conversation, not a prediction of your relationship's success.", ar: "هذه نقطة بداية للحوار، وليست تنبؤًا بنجاح علاقتكما." },
+  // v5 additions — home screen "How it works" strip and the demo-profiles
+  // shortcut. Purely presentational: no scoring key below this line.
+  howTitle:     { en: "How it works", ar: "كيف يعمل التطبيق" },
+  how1Title:    { en: "Assess", ar: "التقييم" },
+  how1Desc:     { en: "Answer at your own pace, in English or Arabic.", ar: "أجب في وقتك الخاص، بالعربية أو الإنجليزية." },
+  how2Title:    { en: "Get your code", ar: "احصل على رمزك" },
+  how2Desc:     { en: "Finish and get a short code to send your partner — nothing else to send.", ar: "أنهِ التقييم واحصل على رمز قصير ترسله لشريكك — لا حاجة لإرسال أي شيء آخر." },
+  how3Title:    { en: "Compare", ar: "المقارنة" },
+  how3Desc:     { en: "Enter their code, or compare two profiles saved on this device.", ar: "أدخل رمزهم، أو قارن بين ملفين محفوظين على هذا الجهاز." },
+  how4Title:    { en: "Stay private", ar: "ابقَ في أمان" },
+  how4Desc:     { en: "Everything stays on your device. Only an expiring code ever leaves it.", ar: "كل شيء يبقى على جهازك. لا يغادره سوى رمز ينتهي صلاحيته." },
+  demoBtn:      { en: "Load demo profiles", ar: "تحميل ملفَي تجربة" },
+  demoNote:     { en: "Loads two sample profiles so you can see a full report instantly.", ar: "يحمّل ملفَي تجربة لتتمكن من رؤية تقرير كامل فورًا." },
+  demoLoaded:   { en: "Demo profiles loaded — tap Compare two profiles to see the report.", ar: "تم تحميل ملفَي التجربة — اضغط «قارن ملفين» لرؤية التقرير." },
+  demoTag:      { en: "Demo", ar: "تجريبي" },
+  encryptExports:     { en: "Encrypt my exported file", ar: "تشفير الملف عند التنزيل" },
+  encryptExportsNote: { en: "Off by default. When on, downloaded files can only be re-opened on this device — good for a file sitting in email or a cloud drive.", ar: "معطّل افتراضيًا. عند التفعيل، لا يمكن إعادة فتح الملفات المنزّلة إلا على هذا الجهاز — مناسب لملف يمر عبر البريد أو التخزين السحابي." },
+  fileWrongDevice:    { en: "This file is encrypted and was exported from a different device or browser, so it can't be opened here.", ar: "هذا الملف مشفّر وصُدِّر من جهاز أو متصفح مختلف، لذا لا يمكن فتحه هنا." },
 };
 
 export const CATS = {
