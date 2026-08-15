@@ -206,9 +206,29 @@ support. If either partner is balanced, no couple-level comparison is drawn.
 
 Like the worldview axes, this never moves the Alignment Index.
 
+## Type Preferences (v7)
+
+The report also shows a **Type Preferences** card: the four preferences behind the familiar four-letter shorthand, in both the solo and couple views. No new questions — like Interaction Style, it re-reads the Big Five answers already given.
+
+The mapping comes from McCrae & Costa (1989, N = 267), which correlated each continuous four-letter scale against the five-factor model: E–I with Extraversion (−.74), S–N with Openness (.72), T–F with Agreeableness (.44), J–P with Conscientiousness (−.49). The first two are strong, the second two moderate, and the card says so.
+
+**This is not the branded instrument.** The Myers-Briggs Type Indicator® and MBTI® are trademarks of The Myers-Briggs Company with proprietary items; nothing here is scored against its norms. A load-time guardrail throws if a user-facing string claims otherwise.
+
+**The sliders are the result; the letters are a summary.** Within 8 points of the midpoint a letter shows as `X` rather than being forced — the four dimensions are continuous and roughly normally distributed, not two kinds of people, which is also why about half of people flip at least one letter on a five-week retest.
+
+**The card says out loud what the four letters leave out.** Emotional volatility (Neuroticism) has no counterpart in the model at all — and across 115 longitudinal studies of couples it was the most consistent personality predictor of satisfaction and stability. The four letters are silent on the trait with the strongest evidence for the question the app is about.
+
+Two visualisations, deliberately kept in separate blocks:
+
+- **Type map** — all sixteen types shaded by distance from the actual scores, with nearest and furthest listed. Measured; it shows resemblance, not suitability.
+- **"Best match" chart** — Keirsey & Bates (1978), the source nearly every online match chart descends from. Shown *with* the fact that it did not hold up when tested, and that a 1991 US National Research Council review did not support this use.
+- **Couple distance strip** — average and per-dimension gaps between two people. Description, not a grade; neither end is the good end.
+
+Like the worldview axes and Interaction Style, none of this moves the Alignment Index.
+
 ## Files
 
-`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — three additive v4 modules — `questions-v4.js`, `scoring-v4.js`, `report-v4.js` — four additive v5 modules — `scoring-v5.js`, `report-v5.js`, `demo-v5.js`, `crypto-v5.js` — and two additive v6 modules — `scoring-v6.js`, `report-v6.js` — which layer on top without modifying anything below them. `Build-MatchWise-v4.md`, `Build-MatchWise-v5.md` and `Build-MatchWise-v6.md` are the v4, v5 and v6 specs, including the research and review each was built from.
+`index.html`, `style.css`, and `js/` are the source. The v2 modules (`questions.js`, `scoring.js`, `report.js`, `i18n.js`, `cloud.js`, `app.js`) are joined by three additive v3 modules — `questions-v3.js`, `scoring-v3.js`, `report-v3.js` — three additive v4 modules — `questions-v4.js`, `scoring-v4.js`, `report-v4.js` — four additive v5 modules — `scoring-v5.js`, `report-v5.js`, `demo-v5.js`, `crypto-v5.js` — two additive v6 modules — `scoring-v6.js`, `report-v6.js` — and two additive v7 modules — `scoring-v7.js`, `report-v7.js` — which layer on top without modifying anything below them. `Build-MatchWise-v4.md`, `Build-MatchWise-v5.md`, `Build-MatchWise-v6.md` and `Build-MatchWise-v7.md` are the v4, v5, v6 and v7 specs, including the research and review each was built from.
 
 Every `import` in the `js/` folder must stay on one line. `build-single.js` flattens the modules into the offline file by deleting whole lines that start with `import`, so a multi-line import leaves a dangling `} from "…";` behind. The build now fails loudly on that rather than shipping a broken bundle.
 

@@ -33,6 +33,9 @@ const bundle = [
   // v6 layer — interaction style. Depends on report-v5.js, so it follows it.
   strip(rd('js/scoring-v6.js')),
   strip(rd('js/report-v6.js')),
+  // v7 layer — type preferences. Depends on report-v6.js, so it follows it.
+  strip(rd('js/scoring-v7.js')),
+  strip(rd('js/report-v7.js')),
   strip(rd('js/app.js')).replace(/if \("serviceWorker"[\s\S]*?\{\}\);/, ''),
 ].join('\n\n');
 
@@ -58,7 +61,9 @@ for (const key of ['importBtn:', 'levelLow:', 'sTitle:', 'previewBtn:',
                    'genderQ:', 'REWRITES_V4', 'worldviewAxes', 'axis4-track',
                    'growthOpportunities', 'renderReportV5', 'buildDemoProfiles', 'demoBtn',
                    'MWENC1', 'encryptExportsCheck',
-                   'interactionStyle', 'renderReportV6', 'STYLE_MIN_CLARITY'])
+                   'interactionStyle', 'renderReportV6', 'STYLE_MIN_CLARITY',
+                   'typePreferences', 'renderReportV7', 'TYPE_MIN_CLARITY',
+                   'typeDistances', 'keirseyMatches', 't7-grid'])
   if (!html.includes(key)) problems.push('missing ' + key);
 
 // The service worker precaches an explicit file list. A js/ file that exists
@@ -70,7 +75,7 @@ const swAssets = (sw.match(/const ASSETS = \[([\s\S]*?)\];/) || [, ''])[1];
 for (const f of fs.readdirSync('js').filter(f => f.endsWith('.js')))
   if (!swAssets.includes(`js/${f}`)) problems.push(`sw.js ASSETS missing js/${f}`);
 // And a stale CACHE name means installed phones never see any of it.
-if (!/const CACHE = "matchwise-v6"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
+if (!/const CACHE = "matchwise-v7"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
 
 if (problems.length) { console.error('BUILD PROBLEMS:', problems); process.exit(1); }
 console.log('built MatchWise-preview.html:', html.length, 'bytes — checks passed');

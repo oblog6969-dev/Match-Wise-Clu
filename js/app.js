@@ -11,6 +11,7 @@ import { compareV4, soloSummaryV4, genderOf, stageOf, GENDER_KEY, STAGE_KEY } fr
 import { renderReportV4, renderSoloV4 } from "./report-v4.js";
 import { renderReportV5 } from "./report-v5.js";
 import { renderReportV6, renderSoloV6 } from "./report-v6.js";
+import { renderReportV7, renderSoloV7 } from "./report-v7.js";
 import { buildDemoProfiles, DEMO_IDS } from "./demo-v5.js";
 import { encryptText, decryptText, isEncrypted } from "./crypto-v5.js";
 
@@ -125,7 +126,7 @@ function showSolo(p) {
   const v4 = isV4(p), v3 = isV3Answers(p.answers);
   let s = v4 ? soloSummaryV4(p) : v3 ? soloSummaryV3(p) : soloSummary(p);
   if (p.imported) s = redactAnswerList(s);
-  $("#soloRoot").innerHTML = v4 ? renderSoloV6(s, p, lang)
+  $("#soloRoot").innerHTML = v4 ? renderSoloV7(s, p, lang)
     : v3 ? renderSoloV3(s, p, lang) : renderSolo(s, p, lang);
   // v5: a demo profile is illustrative sample data, never a real person's —
   // it must not leave the device as a downloadable file either.
@@ -321,10 +322,10 @@ let lastPair = null;
 function renderCoupleReport(pa, pb) {
   const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
   if (isV4(pa) || isV4(pb)) {
-    // v6 wraps v5 (which wraps v4) and adds the Interaction Style card.
-    // Every layer is presentation-only: compareV4()'s index, confidence and
-    // deal-breaker capping are untouched by both.
-    $("#reportRoot").innerHTML = renderReportV6(compareV4(pa, pb), pa, pb, lang);
+    // v7 wraps v6 (which wraps v5, which wraps v4) and adds the Type
+    // Preferences card. Every layer is presentation-only: compareV4()'s index,
+    // confidence and deal-breaker capping are untouched by all of them.
+    $("#reportRoot").innerHTML = renderReportV7(compareV4(pa, pb), pa, pb, lang);
   } else if (bothV2) {
     $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
   } else {

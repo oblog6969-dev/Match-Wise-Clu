@@ -314,3 +314,60 @@ ul.clean li:last-child{border:none}
 #demoBtn { margin-top: 10px; }
 
 .encrypt-toggle { display: flex; align-items: center; gap: 10px; font-size: .92rem; cursor: pointer; margin-top: 14px; font-weight: 500; }
+
+/* ── v7: type-preference map ─────────────────────────────────────────────────
+   The 16-type grid is plain CSS grid, not SVG, so it needs no manual RTL
+   mirroring and cannot hit the text-anchor/direction class of bug documented
+   in the v5 round. `direction:ltr` is pinned on the grid and the chips only:
+   a four-letter type code reads left-to-right in Arabic too, exactly like
+   .code-display above. Surrounding prose still flows RTL normally. */
+.t7-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;direction:ltr;
+  margin:8px 0 6px;
+}
+.t7-cell{
+  border:1px solid var(--line);border-radius:10px;padding:6px 2px 5px;
+  text-align:center;overflow:hidden;
+}
+.t7-code{
+  display:block;border-radius:6px;padding:5px 0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.82rem;letter-spacing:.04em;
+}
+.t7-you{
+  display:block;font-style:normal;font-size:.62rem;font-weight:700;
+  margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.t7-scale{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted)}
+.t7-scale i{
+  flex:1;height:8px;border-radius:99px;
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--accent2) 52%,transparent),
+    color-mix(in srgb,var(--accent2) 6%,transparent));
+}
+[dir="rtl"] .t7-scale i{transform:scaleX(-1)}
+.t7-chip{
+  display:inline-block;border:1px solid var(--line);border-radius:99px;
+  padding:3px 10px;font-size:.8rem;font-weight:700;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+/* Narrow phones: four columns of type codes get tight, so shrink the code
+   rather than letting the grid overflow the card. */
+@media (max-width:380px){
+  .t7-code{font-size:.7rem;letter-spacing:0}
+  .t7-grid{gap:4px}
+}
+/* Dimension heading: the plain-language name and the letter cross-reference
+   sit at opposite ends of a flex row, and with a long Arabic name they met in
+   the middle with nothing between them. */
+.t7-dimhead{gap:14px;align-items:baseline}
+.t7-dimhead > span:last-child{text-align:end;flex-shrink:0}
+/* v7 sub-headings: these follow a paragraph of prose, and .lean-head carries
+   only a bottom margin, so each section title sat flush against the sentence
+   above it. Scoped to v7 so the shared .lean-head used for slider labels
+   elsewhere keeps its tight spacing. */
+.t7-h{margin-top:20px}
+/* Nearest/furthest columns: the two headings wrap to different line counts,
+   which knocked the first row of each list out of alignment with the other. */
+.t7-rank > .lean-head{min-height:2.6em;align-items:flex-start}
