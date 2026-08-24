@@ -254,6 +254,21 @@ function renderQuestion() {
     html += `<div class="likert"><div class="likert-scale">` +
       [1,2,3,4,5,6,7].map(v => `<button class="likert-dot ${quiz.answers[q.id]===v?"sel":""}" data-v="${v}">${v}</button>`).join("") +
       `</div><div class="likert-labels"><span>${t("likertLow", lang)}</span><span>${t("likertHigh", lang)}</span></div></div>`;
+  } else if (q.type === "text") {
+    // v8 — open-text items (js/questions-v8.js). Always skippable: this is
+    // the one question type in the whole quiz that doesn't require an
+    // answer to advance. See spec §1 — even the presence of a Skip option
+    // here must look identical in style to every other question's controls.
+    const maxLen = q.maxLen || 500;
+    const existing = quiz.answers[q.id] || "";
+    html += `<div class="q-text-input">
+      <textarea id="textAnswer" maxlength="${maxLen}">${existing}</textarea>
+      <div class="q-text-counter"><span id="textCount">${existing.length}</span>/${maxLen}</div>
+    </div>
+    <div class="q-actions">
+      <button class="opt" data-text-action="skip">${t("skipBtn", lang)}</button>
+      <button class="opt" data-text-action="continue">${t("continueBtn", lang)}</button>
+    </div>`;
   } else {
     html += q.opts.map((o, idx) => {
       const val = "v" in o ? o.v : o.k;
@@ -263,11 +278,20 @@ function renderQuestion() {
   }
   card.innerHTML = html;
 
-  card.querySelectorAll(".likert-dot").forEach(b => b.onclick = () => answer(q, Number(b.dataset.v)));
-  card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
-    const o = q.opts[Number(b.dataset.idx)];
-    answer(q, "v" in o ? o.v : o.k);
-  });
+  if (q.type === "text") {
+    const ta = $("#textAnswer"), count = $("#textCount");
+    const maxLen = q.maxLen || 500;
+    ta.placeholder = t("optTextPlaceholder", lang);
+    ta.oninput = () => { count.textContent = ta.value.length; };
+    card.querySelector('[data-text-action="skip"]').onclick = () => answerOptionalText(q, null);
+    card.querySelector('[data-text-action="continue"]').onclick = () => answerOptionalText(q, ta.value.trim().slice(0, maxLen));
+  } else {
+    card.querySelectorAll(".likert-dot").forEach(b => b.onclick = () => answer(q, Number(b.dataset.v)));
+    card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      const o = q.opts[Number(b.dataset.idx)];
+      answer(q, "v" in o ? o.v : o.k);
+    });
+  }
 }
 // The 220ms pause is the selection animation. Without a guard, taps landing
 // inside that window queue extra advances — and on the last question each one
@@ -276,6 +300,18 @@ function renderQuestion() {
 // produced 62 profiles from a single run. `advancing` swallows anything that
 // arrives before the transition completes.
 let advancing = false;
+// Shared by answer() and answerOptionalText() (v8's open-text items — the
+// one question type that can be skipped, so it needs its own entry point
+// but the exact same advance/guard timing as every other question).
+function advanceQuiz() {
+  advancing = true;
+  setTimeout(() => {
+    if (quiz.i < quiz.bank.length - 1) { quiz.i++; advancing = false; renderQuestion(); }
+    // On the last question the guard stays latched deliberately: the quiz is
+    // over, and nothing should be able to call finishQuiz() a second time.
+    else finishQuiz();
+  }, 220);
+}
 function answer(q, v) {
   if (advancing) return;
   quiz.answers[q.id] = v;
@@ -285,13 +321,20 @@ function answer(q, v) {
   // returns immediately and the checkpoint resolves (or times out) in the
   // background. See spec §4.2.
   aiSession?.onAnswer(q, v, quiz.bank, quiz.i, quiz.answers);
-  advancing = true;
-  setTimeout(() => {
-    if (quiz.i < quiz.bank.length - 1) { quiz.i++; advancing = false; renderQuestion(); }
-    // On the last question the guard stays latched deliberately: the quiz is
-    // over, and nothing should be able to call finishQuiz() a second time.
-    else finishQuiz();
-  }, 220);
+  advanceQuiz();
+}
+// v8 — open-text items only. `text` is null on Skip: nothing is written to
+// quiz.answers (a skipped item must not appear "answered" to
+// categoryCoverage or to the Insight Engine — see ai-session-v8.js), and
+// the Insight Engine isn't notified either, since skipping isn't a signal
+// worth spending checkpoint bookkeeping on.
+function answerOptionalText(q, text) {
+  if (advancing) return;
+  if (text) {
+    quiz.answers[q.id] = text;
+    aiSession?.onAnswer(q, text, quiz.bank, quiz.i, quiz.answers);
+  }
+  advanceQuiz();
 }
 function finishQuiz() {
   const profile = {

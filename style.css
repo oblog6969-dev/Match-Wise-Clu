@@ -137,6 +137,18 @@ hr.soft{border:none;border-top:1px solid var(--line);margin:20px 0 14px}
 }
 .opt:hover{border-color:var(--accent2)}
 .opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+/* v8 — open-text question. Reuses .opt for the Skip/Continue buttons so it
+   sits visually inside the existing question-card language rather than
+   introducing a new button style. */
+.q-text-input textarea{
+  width:100%;min-height:120px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--text);border-radius:14px;padding:14px;font-size:.98rem;line-height:1.45;
+  font-family:inherit;resize:vertical;transition:.15s;
+}
+.q-text-input textarea:focus{outline:none;border-color:var(--accent)}
+.q-text-counter{text-align:end;font-size:.78rem;color:var(--muted);margin:6px 0 16px}
+.q-actions{display:flex;gap:10px}
+.q-actions .opt{flex:1;text-align:center;margin-bottom:0}
 .quiz-nav{display:flex;justify-content:flex-start}
 
 /* Profiles list */
