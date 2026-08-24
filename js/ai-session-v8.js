@@ -38,8 +38,12 @@ const TIMEOUT_MS = 4000; // must match supabase/functions/assess/index.ts TIMEOU
  * three lines, unlikely to drift — kept here rather than exporting the
  * original, so this file never has to reach into scoring-v3.js's internals.
  * If scoring-v3.js's normV3() ever changes, this must change with it.
+ * Exported because js/scoring-v8.js (Phase 4) needs the identical
+ * normalization to numerically verify a claimed pair resolution — one
+ * source of truth for "what does this raw answer actually mean" across the
+ * whole v8 layer, rather than a third copy.
  */
-function normLikert(q, v) {
+export function normLikert(q, v) {
   if (v == null || typeof v !== "number") return null;
   return q.rv ? 8 - v : v;
 }

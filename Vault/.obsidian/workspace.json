@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Known limitations.md",
+                "file": "Roadmap - v8 Proposals.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Known limitations"
+              "title": "Roadmap - v8 Proposals"
             }
           }
         ]
@@ -190,10 +190,13 @@
   },
   "active": "e04cb58dbd1d79d4",
   "lastOpenFiles": [
-    "Overview.md",
     "Home.md",
+    "Roadmap - v8 Proposals.md",
+    "Deployment.md",
     "Decisions log .md",
     "Data model ·.md",
+    "Known limitations.md",
+    "Overview.md",
     "Assessment design.md",
     "Architecture.md"
   ]

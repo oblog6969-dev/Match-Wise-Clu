@@ -337,6 +337,19 @@ function answerOptionalText(q, text) {
   advanceQuiz();
 }
 function finishQuiz() {
+  // v8: carry this run's confirmed pair-resolution claims along with the
+  // profile itself — under a reserved key, the same pattern GENDER_KEY/
+  // STAGE_KEY already use, so it travels through every existing channel
+  // (localStorage, .json export, the Supabase share code) with zero schema
+  // changes, and is automatically invisible to compareV4()/
+  // profileConfidenceV3() since neither iterates unknown answer keys. See
+  // js/scoring-v8.js's parseResolutionLog(). Numeric confirmation of each
+  // claim (does it actually narrow anything) happens there, not here —
+  // this only persists what ai-session-v8.js structurally validated.
+  if (aiSession) {
+    const log = aiSession.getSessionSummary().resolutionLog;
+    if (log.length) quiz.answers.__ai8 = JSON.stringify(log);
+  }
   const profile = {
     id: "p_" + Date.now(),
     name: quiz.name,
