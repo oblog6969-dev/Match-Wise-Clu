@@ -10,14 +10,22 @@
 // Anything missing isn't precached, so offline it falls through to a network
 // fetch that can't succeed — and since js/app.js imports the v3 modules at
 // load time, one missing entry breaks the whole app, not just one feature.
-const CACHE = "matchwise-v7";
+const CACHE = "matchwise-v8";
 const ASSETS = ["./", "index.html", "style.css", "manifest.json",
   "js/app.js", "js/cloud.js", "js/i18n.js", "js/questions.js", "js/scoring.js", "js/report.js",
   "js/questions-v3.js", "js/scoring-v3.js", "js/report-v3.js",
   "js/questions-v4.js", "js/scoring-v4.js", "js/report-v4.js",
   "js/scoring-v5.js", "js/demo-v5.js", "js/crypto-v5.js", "js/report-v5.js",
   "js/scoring-v6.js", "js/report-v6.js",
-  "js/scoring-v7.js", "js/report-v7.js"];
+  "js/scoring-v7.js", "js/report-v7.js",
+  // v8 — Insight Engine. Optional at runtime (see aiEnabled()'s default-ON
+  // opt-out toggle), but the modules themselves are still real imports
+  // js/app.js and js/report-v8.js load unconditionally at parse time, so
+  // every one of them must be precached the same as any other v3-v7 module
+  // — see this file's own header on why one missing entry breaks offline
+  // for the whole app, not just this feature.
+  "js/ai-client-v8.js", "js/ai-schema-v8.js", "js/ai-cache-v8.js", "js/ai-session-v8.js",
+  "js/questions-v8.js", "js/scoring-v8.js", "js/report-v8.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

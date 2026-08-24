@@ -648,6 +648,16 @@ if ("serviceWorker" in navigator && location.protocol === "https:")
 $("#encryptExportsCheck").checked = encryptExportsOn();
 $("#encryptExportsCheck").onchange = e => localStorage.setItem(LS.encrypt, e.target.checked ? "1" : "0");
 
+// ---------- v8: Insight Engine opt-out toggle ----------
+// Reflects aiEnabled() on load; writing "0"/"1" is exactly what aiEnabled()
+// itself reads (see its definition near the top of this file). Turning this
+// off takes effect on the NEXT quiz/report — a session already in progress
+// (an existing `aiSession`, or an addon fetch already in flight from
+// renderCoupleReport()) is not torn down mid-flight, matching how the
+// encrypt-exports toggle above also only affects what happens next.
+$("#aiEnabledCheck").checked = aiEnabled();
+$("#aiEnabledCheck").onchange = e => localStorage.setItem(LS.aiEnabled, e.target.checked ? "1" : "0");
+
 // ---------- init ----------
 applyTheme();
 applyLang();

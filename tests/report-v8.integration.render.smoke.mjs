@@ -29,7 +29,7 @@ function freshProfiles() {
   ];
 }
 
-async function runOnce({ aiEnabled, mockFetch }) {
+async function runOnce({ aiEnabled, mockFetch, secondGenerate = false }) {
   const dom = new JSDOM(html, { url: "https://example.com/", pretendToBeVisual: true, runScripts: "outside-only" });
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
@@ -51,11 +51,22 @@ async function runOnce({ aiEnabled, mockFetch }) {
 
   const syncHtml = document.querySelector("#reportRoot").innerHTML;
   await new Promise(r => setTimeout(r, 150)); // let the background addon fetch/append resolve
-  const finalHtml = document.querySelector("#reportRoot").innerHTML;
-  const finalText = document.querySelector("#reportRoot").textContent;
+  let finalHtml = document.querySelector("#reportRoot").innerHTML;
+  let finalText = document.querySelector("#reportRoot").textContent;
+
+  let secondFinalHtml = null;
+  if (secondGenerate) {
+    // Same pair, same language — the exact "re-open the same comparison /
+    // toggle language and back" case js/ai-cache-v8.js exists for. A cache
+    // hit means the mock's call counter (tracked by the caller) must not
+    // grow between the first wait above and this one.
+    document.querySelector("#generateBtn").click();
+    await new Promise(r => setTimeout(r, 150));
+    secondFinalHtml = document.querySelector("#reportRoot").innerHTML;
+  }
 
   globalThis.fetch = realFetch;
-  return { syncHtml, finalHtml, finalText };
+  return { syncHtml, finalHtml, finalText, secondFinalHtml };
 }
 
 let failures = 0;
@@ -103,6 +114,27 @@ check("AI on + full directives: the addon is appended after a short delay (final
 check("AI on + full directives: person card text appears", fullOn.finalText.includes("A steady, clear communicator."));
 check("AI on + full directives: couple insight text appears", fullOn.finalText.includes("Shared outlook"));
 check("AI on + full directives: person names appear only as plain text, never sent over the mocked network out of band", fullOn.finalText.includes("Alex"));
+
+// ---- js/ai-cache-v8.js actually gets used: re-opening the same comparison
+// (same pair, same language — generateBtn clicked a second time) must not
+// re-hit the network for report_person/report_couple, only reuse what's
+// already cached in this browser's localStorage.
+{
+  let calls = 0;
+  const countingFullStub = async (url, opts) => {
+    // Only count report_person/report_couple — the fire-and-forget warm-up
+    // call at app load (phase "routing", sessionId "warmup") is unrelated to
+    // the cache being tested here.
+    const body = JSON.parse(opts.body);
+    if (body.phase === "report_person" || body.phase === "report_couple") calls++;
+    return fullStub(url, opts);
+  };
+  const cacheRun = await runOnce({ aiEnabled: true, mockFetch: countingFullStub, secondGenerate: true });
+  check("cache: second generate() on the same pair renders the same final content as the first", cacheRun.secondFinalHtml === cacheRun.finalHtml);
+  // 2 report_person calls (A + B) + 1 report_couple call = 3, for the FIRST
+  // generate only. The second generate must add zero further calls.
+  check(`cache: exactly 3 network calls total across both generates, not 6 (saw ${calls})`, calls === 3);
+}
 
 console.log(`\n${failures === 0 ? "PASSED" : "FAILED"} — ${failures} failing check(s)`);
 if (failures > 0) process.exit(1);
