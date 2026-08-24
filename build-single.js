@@ -36,6 +36,21 @@ const bundle = [
   // v7 layer — type preferences. Depends on report-v6.js, so it follows it.
   strip(rd('js/scoring-v7.js')),
   strip(rd('js/report-v7.js')),
+  // v8 layer — Insight Engine. Dependency order: the three leaf modules
+  // (schema/transport/cache — no internal deps) first, then questions-v8.js
+  // (pure data), then ai-session-v8.js (needs questions-v3.js already above,
+  // plus questions-v8.js/ai-client-v8.js/ai-schema-v8.js), then
+  // scoring-v8.js (needs scoring-v4.js already above, plus ai-session-v8.js),
+  // then report-v8.js last (needs all of the above). See each file's own
+  // import list — this order must stay a strict "only imports from files
+  // listed before it" chain, same rule every earlier layer follows.
+  strip(rd('js/ai-schema-v8.js')),
+  strip(rd('js/ai-client-v8.js')),
+  strip(rd('js/ai-cache-v8.js')),
+  strip(rd('js/questions-v8.js')),
+  strip(rd('js/ai-session-v8.js')),
+  strip(rd('js/scoring-v8.js')),
+  strip(rd('js/report-v8.js')),
   strip(rd('js/app.js')).replace(/if \("serviceWorker"[\s\S]*?\{\}\);/, ''),
 ].join('\n\n');
 
@@ -63,7 +78,14 @@ for (const key of ['importBtn:', 'levelLow:', 'sTitle:', 'previewBtn:',
                    'MWENC1', 'encryptExportsCheck',
                    'interactionStyle', 'renderReportV6', 'STYLE_MIN_CLARITY',
                    'typePreferences', 'renderReportV7', 'TYPE_MIN_CLARITY',
-                   'typeDistances', 'keirseyMatches', 't7-grid'])
+                   'typeDistances', 'keirseyMatches', 't7-grid',
+                   // v8 — Insight Engine. One key per bundled module so a
+                   // module silently dropped from the `bundle` array above
+                   // (or stripped to nothing by a strip() edge case) fails
+                   // the build instead of shipping a broken offline preview.
+                   'postPacket', 'isValidRoutingDirective', 'cacheKeyFor',
+                   'PROBE_ITEMS', 'createAiSession', 'computeDisplayConfidence',
+                   'buildAiReportAddon', 'renderAiReportAddon', 'aiToggleLabel', 'aiEnabledCheck'])
   if (!html.includes(key)) problems.push('missing ' + key);
 
 // The service worker precaches an explicit file list. A js/ file that exists
@@ -75,7 +97,7 @@ const swAssets = (sw.match(/const ASSETS = \[([\s\S]*?)\];/) || [, ''])[1];
 for (const f of fs.readdirSync('js').filter(f => f.endsWith('.js')))
   if (!swAssets.includes(`js/${f}`)) problems.push(`sw.js ASSETS missing js/${f}`);
 // And a stale CACHE name means installed phones never see any of it.
-if (!/const CACHE = "matchwise-v7"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
+if (!/const CACHE = "matchwise-v8"/.test(sw)) problems.push('sw.js CACHE name not bumped for this release');
 
 if (problems.length) { console.error('BUILD PROBLEMS:', problems); process.exit(1); }
 console.log('built MatchWise-preview.html:', html.length, 'bytes — checks passed');

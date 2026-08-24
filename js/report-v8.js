@@ -35,21 +35,33 @@
 // Phase 1 stub deployed today returns), buildAiReportAddon() resolves to
 // null and nothing is appended — the report stays byte-identical to
 // renderReportV7()'s own output. No empty cards, no error shown.
+//
+// Both calls are cached (js/ai-cache-v8.js, keyed on phase+who+lang plus
+// the actual answers involved) — this is that module's originally-stated
+// purpose: app.js's language toggle re-runs renderCoupleReport() on every
+// EN/AR switch while a report is open, and without this, every toggle would
+// re-bill both calls for content that can't have changed. Only a
+// shape-validated response is ever cached; a failed call is never cached,
+// so a down endpoint is retried on the next toggle rather than staying
+// silent forever.
 // -----------------------------------------------------------------------------
 
 import { bankFor } from "./scoring-v4.js";
 import { computeUnresolvedPairs, computeCategoryCoverage } from "./ai-session-v8.js";
-import {
-  parseResolutionLog,
-  validateNumericResolution,
-  computeDisplayConfidence,
-  filterValidOpenTextSignals,
-} from "./scoring-v8.js";
+// Single line on purpose — build-single.js's strip() only removes whole-line
+// `import`s; a wrapped import leaves a dangling `} from "...";` in the
+// bundle (a syntax error that surfaces only when someone opens the built
+// single-file preview). See that file's own sanity-check comment.
+import { parseResolutionLog, validateNumericResolution, computeDisplayConfidence, filterValidOpenTextSignals } from "./scoring-v8.js";
 import { isValidReportPersonDirective, isValidReportCoupleDirective } from "./ai-schema-v8.js";
 import { OPEN_TEXT_ITEMS } from "./questions-v8.js";
 import { postPacket } from "./ai-client-v8.js";
+import { cacheKeyFor, getCached, setCached } from "./ai-cache-v8.js";
 
-const TIMEOUT_MS = 4000; // matches ai-session-v8.js / supabase/functions/assess/index.ts
+const REPORT_TIMEOUT_MS = 4000; // matches ai-session-v8.js's own TIMEOUT_MS / supabase/functions/assess/index.ts
+// (named distinctly from ai-session-v8.js's TIMEOUT_MS so the two module-
+// scoped constants don't collide once build-single.js concatenates every
+// module into one shared top-level scope for the offline single-file build)
 
 // ------------------------------------------------------------- text table --
 
@@ -175,10 +187,15 @@ function buildCouplePacket({ sessionId, lang, pa, pb, compareResult, personA, pe
 
 /** Never throws, never returns a partial/unverified result. Returns null when there is nothing safe or non-empty to show. */
 async function fetchPersonDirective({ sessionId, lang, who, compareResult, p }) {
-  const packet = buildPersonPacket({ sessionId, lang, who, compareResult, p });
-  const result = await postPacket(packet, { timeoutMs: TIMEOUT_MS });
-  if (result == null) return null;
-  if (!isValidReportPersonDirective(result)) return null;
+  const cacheKey = cacheKeyFor(`report_person:${who}:${lang}`, p.answers || {});
+  let result = getCached(cacheKey);
+  if (result == null) {
+    const packet = buildPersonPacket({ sessionId, lang, who, compareResult, p });
+    result = await postPacket(packet, { timeoutMs: REPORT_TIMEOUT_MS });
+    if (result == null) return null;
+    if (!isValidReportPersonDirective(result)) return null;
+    setCached(cacheKey, result); // only a shape-validated response is ever cached
+  }
 
   const openTextAnswers = {};
   for (const item of OPEN_TEXT_ITEMS) {
@@ -203,10 +220,15 @@ async function fetchPersonDirective({ sessionId, lang, who, compareResult, p }) 
 
 async function fetchCoupleDirective({ sessionId, lang, pa, pb, compareResult, personA, personB }) {
   const shared = sharedAnsweredIds(pa, pb);
-  const packet = buildCouplePacket({ sessionId, lang, pa, pb, compareResult, personA, personB, shared });
-  const result = await postPacket(packet, { timeoutMs: TIMEOUT_MS });
-  if (result == null) return null;
-  if (!isValidReportCoupleDirective(result)) return null;
+  const cacheKey = cacheKeyFor(`report_couple:${lang}`, pa.answers || {}, pb.answers || {});
+  let result = getCached(cacheKey);
+  if (result == null) {
+    const packet = buildCouplePacket({ sessionId, lang, pa, pb, compareResult, personA, personB, shared });
+    result = await postPacket(packet, { timeoutMs: REPORT_TIMEOUT_MS });
+    if (result == null) return null;
+    if (!isValidReportCoupleDirective(result)) return null;
+    setCached(cacheKey, result);
+  }
 
   const idsA = new Set(((personA && personA.extractions) || []).map(ex => ex.itemId));
   const idsB = new Set(((personB && personB.extractions) || []).map(ex => ex.itemId));

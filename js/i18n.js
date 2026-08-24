@@ -2,7 +2,14 @@
 export const STR = {
   appName:      { en: "MatchWise", ar: "ماتش وايز" },
   heroTitle:    { en: "How well do you grow together?", ar: "إلى أي مدى تنموان معًا؟" },
-  heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — كل شيء يبقى على هاتفك." },
+  // v8 note: this used to read "everything stays on your phone", which
+  // stopped being accurate once the (default-on, opt-out) Insight Engine
+  // could send an allow-listed, name-free subset of answer patterns for
+  // analysis — see aiToggleLabel/aiToggleNote below and js/ai-session-v8.js's
+  // own comment on why name/code/id/date can never be part of that subset.
+  // What's still true, unconditionally, is kept: no accounts, no tracking,
+  // your identity never leaves the device.
+  heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — your identity never leaves your device.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — هويتك لا تغادر جهازك أبدًا." },
   startBtn:     { en: "Start my assessment", ar: "ابدأ تقييمي" },
   compareBtn:   { en: "Compare two profiles", ar: "قارن ملفين" },
   previewHomeBtn:{ en: "Preview my results", ar: "معاينة نتائجي" },
@@ -131,7 +138,14 @@ export const STR = {
   how3Title:    { en: "Compare", ar: "المقارنة" },
   how3Desc:     { en: "Enter their code, or compare two profiles saved on this device.", ar: "أدخل رمزهم، أو قارن بين ملفين محفوظين على هذا الجهاز." },
   how4Title:    { en: "Stay private", ar: "ابقَ في أمان" },
-  how4Desc:     { en: "Everything stays on your device. Only an expiring code ever leaves it.", ar: "كل شيء يبقى على جهازك. لا يغادره سوى رمز ينتهي صلاحيته." },
+  how4Desc:     { en: "Your name and identity always stay on your device. Only an expiring code — and, if online analysis is on, anonymous answer patterns — ever leave it.", ar: "يبقى اسمك وهويتك على جهازك دائمًا. لا يغادره سوى رمز ينتهي صلاحيته — وإن كان التحليل عبر الإنترنت مفعّلًا، بعض أنماط الإجابات المجهولة." },
+  // v8 — the Insight Engine opt-out toggle on the home screen. Deliberately
+  // low-key (spec §8's "quiet disclosure"): present, honest, and specific
+  // about the one guarantee that matters most (never the name/code/date),
+  // not alarmist about a feature most people will just leave on.
+  aiToggleLabel: { en: "Enhanced online analysis", ar: "تحليل محسّن عبر الإنترنت" },
+  aiToggleNote:  { en: "On by default. Helps ask better follow-up questions and write a more detailed report, using anonymous patterns from your answers — never your name, code, or date. Turn off any time; the assessment still works fully offline.",
+                   ar: "مفعّل افتراضيًا. يساعد على طرح أسئلة متابعة أفضل وكتابة تقرير أكثر تفصيلاً، باستخدام أنماط مجهولة من إجاباتك — لا اسمك ولا رمزك ولا التاريخ أبدًا. يمكنك إيقافه في أي وقت؛ يظل التقييم يعمل بالكامل دون اتصال بالإنترنت." },
   demoBtn:      { en: "Load demo profiles", ar: "تحميل ملفَي تجربة" },
   demoNote:     { en: "Loads two sample profiles so you can see a full report instantly.", ar: "يحمّل ملفَي تجربة لتتمكن من رؤية تقرير كامل فورًا." },
   demoLoaded:   { en: "Demo profiles loaded — tap Compare two profiles to see the report.", ar: "تم تحميل ملفَي التجربة — اضغط «قارن ملفين» لرؤية التقرير." },

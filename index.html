@@ -67,7 +67,16 @@
       <label class="encrypt-toggle"><input type="checkbox" id="encryptExportsCheck"> <span data-i18n="encryptExports">Encrypt my exported file</span></label>
       <p class="muted small" data-i18n="encryptExportsNote"></p>
     </div>
-    <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
+    <!-- v8: Insight Engine opt-out. Default ON. Quiet, honest disclosure —
+         see "MatchWise Vault/v8 - AI Assessor Spec.md" §8. Off means zero
+         network calls to the assess function: js/app.js never creates an
+         aiSession and report-v8.js's buildAiReportAddon() is never called
+         (see aiEnabled() and every `aiEnabled() &&`/`aiSession?.` guard). -->
+    <div class="card">
+      <label class="encrypt-toggle"><input type="checkbox" id="aiEnabledCheck" checked> <span data-i18n="aiToggleLabel">Enhanced online analysis</span></label>
+      <p class="muted small" data-i18n="aiToggleNote"></p>
+    </div>
+    <p class="privacy muted" data-i18n="privacyNote">🔒 No accounts, no tracking. Results are stored under a code you choose to share, and deleted after 6 months.</p>
   </section>
 
   <!-- PREVIEW PICKER -->

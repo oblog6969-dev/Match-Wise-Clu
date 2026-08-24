@@ -148,6 +148,18 @@ hr.soft{border:none;border-top:1px solid var(--line);margin:20px 0 14px}
 }
 .opt:hover{border-color:var(--accent2)}
 .opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+/* v8 — open-text question. Reuses .opt for the Skip/Continue buttons so it
+   sits visually inside the existing question-card language rather than
+   introducing a new button style. */
+.q-text-input textarea{
+  width:100%;min-height:120px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--text);border-radius:14px;padding:14px;font-size:.98rem;line-height:1.45;
+  font-family:inherit;resize:vertical;transition:.15s;
+}
+.q-text-input textarea:focus{outline:none;border-color:var(--accent)}
+.q-text-counter{text-align:end;font-size:.78rem;color:var(--muted);margin:6px 0 16px}
+.q-actions{display:flex;gap:10px}
+.q-actions .opt{flex:1;text-align:center;margin-bottom:0}
 .quiz-nav{display:flex;justify-content:flex-start}
 
 /* Profiles list */
@@ -442,7 +454,16 @@ ul.clean li:last-child{border:none}
       <label class="encrypt-toggle"><input type="checkbox" id="encryptExportsCheck"> <span data-i18n="encryptExports">Encrypt my exported file</span></label>
       <p class="muted small" data-i18n="encryptExportsNote"></p>
     </div>
-    <p class="privacy muted" data-i18n="privacyNote">🔒 100% private — answers never leave your device.</p>
+    <!-- v8: Insight Engine opt-out. Default ON. Quiet, honest disclosure —
+         see "MatchWise Vault/v8 - AI Assessor Spec.md" §8. Off means zero
+         network calls to the assess function: js/app.js never creates an
+         aiSession and report-v8.js's buildAiReportAddon() is never called
+         (see aiEnabled() and every `aiEnabled() &&`/`aiSession?.` guard). -->
+    <div class="card">
+      <label class="encrypt-toggle"><input type="checkbox" id="aiEnabledCheck" checked> <span data-i18n="aiToggleLabel">Enhanced online analysis</span></label>
+      <p class="muted small" data-i18n="aiToggleNote"></p>
+    </div>
+    <p class="privacy muted" data-i18n="privacyNote">🔒 No accounts, no tracking. Results are stored under a code you choose to share, and deleted after 6 months.</p>
   </section>
 
   <!-- PREVIEW PICKER -->
@@ -845,7 +866,14 @@ const QUESTIONS = [
 const STR = {
   appName:      { en: "MatchWise", ar: "ماتش وايز" },
   heroTitle:    { en: "How well do you grow together?", ar: "إلى أي مدى تنموان معًا؟" },
-  heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — everything stays on your phone.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — كل شيء يبقى على هاتفك." },
+  // v8 note: this used to read "everything stays on your phone", which
+  // stopped being accurate once the (default-on, opt-out) Insight Engine
+  // could send an allow-listed, name-free subset of answer patterns for
+  // analysis — see aiToggleLabel/aiToggleNote below and js/ai-session-v8.js's
+  // own comment on why name/code/id/date can never be part of that subset.
+  // What's still true, unconditionally, is kept: no accounts, no tracking,
+  // your identity never leaves the device.
+  heroSub:      { en: "A private compatibility assessment for couples. Research-informed. No accounts, no tracking — your identity never leaves your device.", ar: "تقييم توافق خاص للأزواج، مبني على أبحاث علمية. بلا حسابات ولا تتبع — هويتك لا تغادر جهازك أبدًا." },
   startBtn:     { en: "Start my assessment", ar: "ابدأ تقييمي" },
   compareBtn:   { en: "Compare two profiles", ar: "قارن ملفين" },
   previewHomeBtn:{ en: "Preview my results", ar: "معاينة نتائجي" },
@@ -874,6 +902,12 @@ const STR = {
   beginBtn:     { en: "Begin", ar: "ابدأ" },
   backBtn:      { en: "Back", ar: "رجوع" },
   qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },
+  // v8 — the only UI-visible strings the Insight Engine's open-text items
+  // need. Everything else about v8 is invisible by design; see
+  // "MatchWise Vault/v8 - AI Assessor Spec.md" §1.
+  optTextPlaceholder: { en: "Type as much or as little as you'd like…", ar: "اكتب بقدر ما تريد…" },
+  skipBtn:      { en: "Skip", ar: "تخطّ" },
+  continueBtn:  { en: "Continue", ar: "متابعة" },
   doneTitle:    { en: "Profile created", ar: "تم إنشاء الملف" },
   doneSub:      { en: "Send this code to your partner. When they enter it, you both see the compatibility report — no files to send.", ar: "أرسل هذا الرمز إلى شريكك. عند إدخاله ترون معًا تقرير التوافق — بلا ملفات تُرسل." },
   yourCode:     { en: "Your test code", ar: "رمز اختبارك" },
@@ -968,7 +1002,14 @@ const STR = {
   how3Title:    { en: "Compare", ar: "المقارنة" },
   how3Desc:     { en: "Enter their code, or compare two profiles saved on this device.", ar: "أدخل رمزهم، أو قارن بين ملفين محفوظين على هذا الجهاز." },
   how4Title:    { en: "Stay private", ar: "ابقَ في أمان" },
-  how4Desc:     { en: "Everything stays on your device. Only an expiring code ever leaves it.", ar: "كل شيء يبقى على جهازك. لا يغادره سوى رمز ينتهي صلاحيته." },
+  how4Desc:     { en: "Your name and identity always stay on your device. Only an expiring code — and, if online analysis is on, anonymous answer patterns — ever leave it.", ar: "يبقى اسمك وهويتك على جهازك دائمًا. لا يغادره سوى رمز ينتهي صلاحيته — وإن كان التحليل عبر الإنترنت مفعّلًا، بعض أنماط الإجابات المجهولة." },
+  // v8 — the Insight Engine opt-out toggle on the home screen. Deliberately
+  // low-key (spec §8's "quiet disclosure"): present, honest, and specific
+  // about the one guarantee that matters most (never the name/code/date),
+  // not alarmist about a feature most people will just leave on.
+  aiToggleLabel: { en: "Enhanced online analysis", ar: "تحليل محسّن عبر الإنترنت" },
+  aiToggleNote:  { en: "On by default. Helps ask better follow-up questions and write a more detailed report, using anonymous patterns from your answers — never your name, code, or date. Turn off any time; the assessment still works fully offline.",
+                   ar: "مفعّل افتراضيًا. يساعد على طرح أسئلة متابعة أفضل وكتابة تقرير أكثر تفصيلاً، باستخدام أنماط مجهولة من إجاباتك — لا اسمك ولا رمزك ولا التاريخ أبدًا. يمكنك إيقافه في أي وقت؛ يظل التقييم يعمل بالكامل دون اتصال بالإنترنت." },
   demoBtn:      { en: "Load demo profiles", ar: "تحميل ملفَي تجربة" },
   demoNote:     { en: "Loads two sample profiles so you can see a full report instantly.", ar: "يحمّل ملفَي تجربة لتتمكن من رؤية تقرير كامل فورًا." },
   demoLoaded:   { en: "Demo profiles loaded — tap Compare two profiles to see the report.", ar: "تم تحميل ملفَي التجربة — اضغط «قارن ملفين» لرؤية التقرير." },
@@ -6004,7 +6045,1428 @@ function renderSoloV7(s, p, lang) {
 }
 
 
+// MatchWise v8 — response validators.
+// -----------------------------------------------------------------------------
+// Belt-and-suspenders: supabase/functions/assess/index.ts already validates
+// its own output before sending it, but this file re-checks on the client
+// too. The two run in different trust domains (a stale deployed function,
+// a compromised CDN, a proxy in between) — the rule from the spec is that
+// nothing from the network is trusted just because it parsed as JSON.
+// Anything that fails these checks is discarded whole by the caller
+// (js/ai-session-v8.js), never partially used.
+// -----------------------------------------------------------------------------
+
+function isStringArray(a) {
+  return Array.isArray(a) && a.every(x => typeof x === "string");
+}
+
+/**
+ * Shape only — this file does not know the current question bank, so it
+ * cannot check that injectItems/reorder ids actually exist or that reorder
+ * is a real permutation of the unanswered tail. Those checks need bank
+ * context and live in ai-session-v8.js's applyDirective(), right next to
+ * the splice logic they guard.
+ */
+function isValidRoutingDirective(d) {
+  if (!d || typeof d !== "object") return false;
+  if (!isStringArray(d.injectItems)) return false;
+  if (!isStringArray(d.reorder)) return false;
+  if (!Array.isArray(d.pairResolutions)) return false;
+  for (const r of d.pairResolutions) {
+    if (!r || typeof r !== "object") return false;
+    if (typeof r.aId !== "string" || typeof r.bId !== "string" || typeof r.resolvedBy !== "string") return false;
+  }
+  if (typeof d.probesUsed !== "number") return false;
+  return true;
+}
+
+/** Spec §6.1. Built in Phase 5 alongside report-v8.js; validator lives here now so the shape is fixed before that file is written. */
+function isValidReportPersonDirective(d) {
+  if (!d || typeof d !== "object") return false;
+  if (!d.card || typeof d.card !== "object") return false;
+  const c = d.card;
+  if (typeof c.summary !== "string") return false;
+  if (typeof c.consistency !== "string") return false;
+  if (!isStringArray(c.mattersMost)) return false;
+  return true;
+}
+
+/** Spec §6.2. */
+function isValidReportCoupleDirective(d) {
+  if (!d || typeof d !== "object") return false;
+  if (!Array.isArray(d.insights)) return false;
+  for (const ins of d.insights) {
+    if (!ins || typeof ins !== "object") return false;
+    if (ins.kind !== "strength" && ins.kind !== "challenge") return false;
+    if (typeof ins.title !== "string" || typeof ins.text !== "string") return false;
+    if (!Array.isArray(ins.evidence)) return false;
+    for (const e of ins.evidence) {
+      if (!e || typeof e.itemId !== "string" || typeof e.who !== "string" || typeof e.summary !== "string") return false;
+    }
+  }
+  if (!Array.isArray(d.conversations)) return false;
+  for (const c of d.conversations) {
+    if (!c || typeof c.prompt !== "string" || typeof c.why !== "string" || !Array.isArray(c.evidence)) return false;
+  }
+  if (!Array.isArray(d.divergences)) return false;
+  for (const dv of d.divergences) {
+    if (!dv || typeof dv.cat !== "string" || typeof dv.text !== "string") return false;
+  }
+  return true;
+}
+
+/** Per-open-text signal shape, spec §5. Called once per signal, not once per response — a batch with one bad signal shouldn't sink the good ones. */
+function isValidOpenTextSignal(s) {
+  if (!s || typeof s !== "object") return false;
+  if (typeof s.cat !== "string") return false;
+  if (s.direction !== "high" && s.direction !== "low") return false;
+  if (s.strength !== "weak" && s.strength !== "moderate" && s.strength !== "strong") return false;
+  if (typeof s.quote !== "string" || s.quote.length === 0) return false;
+  return true;
+}
+
+
+// MatchWise v8 — Insight Engine transport.
+// -----------------------------------------------------------------------------
+// Pure transport. No SDK, one plain fetch, matching the project's existing
+// zero-dependency rule (see js/cloud.js, same pattern). This file knows
+// nothing about the quiz, the question bank, or scoring — it only knows how
+// to send a packet to the edge function and hand back whatever came back, or
+// null. Every caller (js/ai-session-v8.js, built in Phase 2) MUST treat a
+// null return as "the Insight Engine said nothing this time" and continue
+// exactly as if the layer were switched off. That silence is the whole
+// point — see "MatchWise Vault/v8 - AI Assessor Spec.md" §4.2 and §10.
+//
+// This file never throws. Every failure mode — offline, timeout, a 4xx/5xx,
+// a response that isn't valid JSON — ends the same way: resolve to null.
+// -----------------------------------------------------------------------------
+
+const AI8_SUPABASE_URL = "https://xtrtilekegrzatnmgyul.supabase.co";
+const AI8_SUPABASE_KEY = "sb_publishable_Q0HMULAWDVVKtV7J6pbw_w_q4H42HYQ";
+const ASSESS_URL = `${AI8_SUPABASE_URL}/functions/v1/assess`;
+
+const DEFAULT_TIMEOUT_MS = 4000; // must match the edge function's own budget — see supabase/functions/assess/index.ts TIMEOUT_BUDGET_MS
+const MIN_RETRY_BUDGET_MS = 800; // below this, a retry can't realistically complete — skip it and just return null
+
+async function attempt(packet, ms, signalExternal) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  // If the caller aborted us (e.g. the checkpoint was cancelled because the
+  // user already clicked Next), stop immediately rather than finishing a
+  // request nobody will use.
+  const onExternalAbort = () => ctrl.abort();
+  signalExternal?.addEventListener("abort", onExternalAbort);
+
+  try {
+    const res = await fetch(ASSESS_URL, {
+      method: "POST",
+      headers: {
+        "apikey": AI8_SUPABASE_KEY,
+        "Authorization": `Bearer ${AI8_SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(packet),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return { ok: false, networkError: false };
+    const data = await res.json().catch(() => null);
+    if (data == null || typeof data !== "object") return { ok: false, networkError: false };
+    return { ok: true, data };
+  } catch (err) {
+    // AbortError = our own timeout, or the caller's cancellation. Neither is
+    // a "network error" worth retrying — the budget is simply spent.
+    const isAbort = err && err.name === "AbortError";
+    return { ok: false, networkError: !isAbort };
+  } finally {
+    clearTimeout(timer);
+    signalExternal?.removeEventListener("abort", onExternalAbort);
+  }
+}
+
+/**
+ * Send one state packet (routing) or report request (report_person /
+ * report_couple) to the Insight Engine. Resolves to the parsed JSON
+ * directive on success, or `null` on ANY failure — timeout, offline, a
+ * non-2xx status, a malformed body. Never rejects.
+ *
+ * One retry is attempted, but only after a genuine network-level failure
+ * (DNS, connection refused, dropped connection) — never after a timeout and
+ * never after a 4xx/5xx, since retrying either of those just spends the
+ * checkpoint's 4s budget for no better odds. See spec §4.2.
+ *
+ * @param {object} packet
+ * @param {{timeoutMs?: number, signal?: AbortSignal}} [opts]
+ * @returns {Promise<object|null>}
+ */
+async function postPacket(packet, opts = {}) {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const startedAt = Date.now();
+
+  const first = await attempt(packet, timeoutMs, opts.signal);
+  if (first.ok) return first.data;
+  if (!first.networkError) return null;
+
+  const remaining = timeoutMs - (Date.now() - startedAt);
+  if (remaining < MIN_RETRY_BUDGET_MS) return null;
+
+  const second = await attempt(packet, remaining, opts.signal);
+  return second.ok ? second.data : null;
+}
+
+/**
+ * Fire-and-forget wake-up call for the Supabase project, which sleeps when
+ * idle (observed cold start: ~30-60s). Call once at app load, before the
+ * quiz's first real checkpoint, so that checkpoint isn't the one paying the
+ * wake-up cost. Result is intentionally ignored — this function never
+ * resolves to anything meaningful and never throws.
+ */
+function warmUp() {
+  try {
+    fetch(ASSESS_URL, {
+      method: "POST",
+      headers: {
+        "apikey": AI8_SUPABASE_KEY,
+        "Authorization": `Bearer ${AI8_SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sessionId: "warmup", lang: "en", phase: "routing",
+        answered: [], openText: [], unresolvedPairs: [], categoryCoverage: [],
+        remainingItemIds: [], probeBudgetLeft: 0, checkpointIndex: 0 }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Some environments (very old Safari, certain privacy modes) can throw
+    // synchronously on fetch construction rather than rejecting. Either way,
+    // a failed warm-up is not an error — the first real checkpoint will just
+    // eat the cold-start latency and time out normally.
+  }
+}
+
+
+// MatchWise v8 — small localStorage cache for AI directives.
+// -----------------------------------------------------------------------------
+// The concrete case this exists for: js/app.js's language toggle re-runs
+// renderCoupleReport(lastPair.pa, lastPair.pb) every time the user switches
+// EN/AR while looking at a report (see the $("#langBtn").onclick handler).
+// Once report-v8.js (Phase 5) adds AI-written report_person/report_couple
+// calls to that path, every language toggle would otherwise re-bill both
+// calls for content that hasn't changed. This cache is keyed on the actual
+// answers, not on time, so it stays valid for as long as the two profiles
+// being compared don't change — which, for a finished report, is forever.
+//
+// Not a general-purpose cache: no TTL, no invalidation beyond a hard cap on
+// entry count (oldest evicted first). Deliberately small and boring.
+// -----------------------------------------------------------------------------
+
+const LS_KEY = "mw_ai_cache_v8";
+const MAX_ENTRIES = 20;
+
+// FNV-1a, 32-bit. Not cryptographic — this only needs to avoid accidental
+// collisions between different answer sets in a single browser, not resist
+// an adversary. Deterministic across runs, which is the actual requirement.
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
+}
+
+/**
+ * A stable key for one (phase, participants, answers) combination. Answers
+ * are sorted by key first so the same answer set always hashes the same way
+ * regardless of insertion order.
+ */
+function cacheKeyFor(phase, ...answerObjects) {
+  const parts = answerObjects.map(ans => {
+    const sortedKeys = Object.keys(ans || {}).sort();
+    return sortedKeys.map(k => `${k}:${ans[k]}`).join(",");
+  });
+  return `${phase}:${hashString(parts.join("|"))}`;
+}
+
+function readStore() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    // Corrupt JSON, storage disabled, quota exceeded on read (shouldn't
+    // happen, but localStorage has surprised people before) — treat as empty
+    // rather than throwing. This is a cache; losing it is never fatal.
+    return {};
+  }
+}
+
+function writeStore(store) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(store));
+  } catch {
+    // Quota exceeded or storage disabled. Silently drop the write — worst
+    // case is one extra AI call next time, not a broken app.
+  }
+}
+
+function getCached(key) {
+  const store = readStore();
+  const entry = store[key];
+  return entry ? entry.directive : null;
+}
+
+function setCached(key, directive) {
+  const store = readStore();
+  store[key] = { directive, ts: Date.now() };
+
+  const keys = Object.keys(store);
+  if (keys.length > MAX_ENTRIES) {
+    keys.sort((a, b) => store[a].ts - store[b].ts);
+    for (const k of keys.slice(0, keys.length - MAX_ENTRIES)) delete store[k];
+  }
+
+  writeStore(store);
+}
+
+
+// MatchWise v8 — Insight Engine probe bank + open-text items.
+// -----------------------------------------------------------------------------
+// Phase 3 content. Same shape js/questions-v3.js / js/questions-v4.js use, so
+// renderQuestion() in app.js needs no special case beyond the "text" type
+// branch added in Phase 3 (see the q.type === "text" branch there).
+//
+// NONE of these ids ever appear in js/questions-v4.js's QUESTIONS_V4, so
+// compareV4() (scoring-v4.js) and profileConfidenceV3() (scoring-v3.js) —
+// which both iterate a fixed, known bank, never the raw answers object —
+// structurally cannot see them. That is what makes "the AI never touches
+// the score" true by construction rather than by convention. See
+// "MatchWise Vault/v8 - AI Assessor Spec.md" §2 and js/ai-session-v8.js's
+// header comment.
+//
+// ⚠ Arabic wording below is a first pass, same status as v3/v4's Arabic —
+// flagged for native-speaker review before release, not machine-translated.
+//
+// Three `kind`s, matching the three things js/ai-session-v8.js can act on:
+//   "contradiction" — targets one specific real CONSISTENCY_PAIRS entry
+//                      (js/questions-v3.js). A third independent wording of
+//                      the same construct, phrased in the SAME direction as
+//                      that pair's primary (non-reverse-scored) item — see
+//                      `resolvesPair` + `sameDirectionAs` below. This is
+//                      what Phase 4's scoring-v8.js will need to judge
+//                      whether an answer actually clarifies anything.
+//   "vague"          — one per real user-facing category (all 17 minus
+//                       "quality", which is the response-quality/attention-
+//                       check category, not a topic — injecting a fake
+//                       probe there would risk interfering with the app's
+//                       own attention-check mechanism). A more concrete,
+//                       scenario-style follow-up than the category's
+//                       existing items, for when an answer sits in the
+//                       middle of the scale.
+//   "dealbreaker"     — deepens the app's three REAL flagged deal-breaker
+//                        topics only (db:true in questions.js): children
+//                        (f1, family), religion (v1, values), relocation
+//                        (g1, growth). Nothing else is treated as a
+//                        deal-breaker topic here, matching the app's own
+//                        restraint — see Decisions Log.
+// -----------------------------------------------------------------------------
+
+// ── A. Contradiction probes — one per real consistency pair ────────────────
+const CONTRADICTION_PROBES = [
+  { id: "p_ctr_01", cat: "attachment", kind: "contradiction", type: "likert",
+    resolvesPair: ["an3", "an6"], sameDirectionAs: "an3",
+    en: "If my partner goes quiet for a day, I start imagining the worst.",
+    ar: "إذا انقطع شريكي عن التواصل ليوم كامل، أبدأ بتخيّل أسوأ الاحتمالات." },
+  { id: "p_ctr_02", cat: "attachment", kind: "contradiction", type: "likert",
+    resolvesPair: ["av1", "av4"], sameDirectionAs: "av1",
+    en: "Even in a serious relationship, I keep an emotional guard up.",
+    ar: "حتى في علاقة جادة، أبقي حاجزًا عاطفيًا بيني وبين الطرف الآخر." },
+  { id: "p_ctr_03", cat: "attachment", kind: "contradiction", type: "likert",
+    resolvesPair: ["av3", "av5"], sameDirectionAs: "av3",
+    en: "I think two people can love each other and still need a lot of separate space to feel okay.",
+    ar: "أعتقد أن شخصين يمكن أن يحبّا بعضهما ومع ذلك يحتاجان مساحة منفصلة كبيرة ليشعرا بالارتياح." },
+  { id: "p_ctr_04", cat: "personality", kind: "contradiction", type: "likert",
+    resolvesPair: ["p1", "p7"], sameDirectionAs: "p1",
+    en: "After a busy social day, I usually want more of that energy, not less.",
+    ar: "بعد يوم اجتماعي مزدحم، عادة ما أريد المزيد من هذه الطاقة، لا أقل منها." },
+  { id: "p_ctr_05", cat: "personality", kind: "contradiction", type: "likert",
+    resolvesPair: ["p2", "p9"], sameDirectionAs: "p2",
+    en: "People who know me well would trust me to follow through on a commitment without reminders.",
+    ar: "من يعرفونني جيدًا يثقون بأنني سأنفّذ التزامًا ما دون الحاجة لتذكيري به." },
+  { id: "p_ctr_06", cat: "personality", kind: "contradiction", type: "likert",
+    resolvesPair: ["p3", "p11"], sameDirectionAs: "p3",
+    en: "Small setbacks can put me in a bad mood for the rest of the day.",
+    ar: "أبسط العقبات قد تُفسد مزاجي لبقية اليوم." },
+  { id: "p_ctr_07", cat: "personality", kind: "contradiction", type: "likert",
+    resolvesPair: ["p4", "p13"], sameDirectionAs: "p4",
+    en: "I'd rather try something unfamiliar than stick with what I already know works.",
+    ar: "أفضّل تجربة شيء غير مألوف على التمسّك بما أعرف أنه ناجح بالفعل." },
+  { id: "p_ctr_08", cat: "personality", kind: "contradiction", type: "likert",
+    resolvesPair: ["p5", "p15"], sameDirectionAs: "p5",
+    en: "When someone disagrees with me, my first instinct is to find common ground, not to win.",
+    ar: "عندما يختلف معي أحد، ردة فعلي الأولى هي البحث عن أرضية مشتركة، لا الفوز بالنقاش." },
+  { id: "p_ctr_09", cat: "communication", kind: "contradiction", type: "likert",
+    resolvesPair: ["c2", "c4"], sameDirectionAs: "c2",
+    en: "When something is bothering me, I can usually put it into words the same day.",
+    ar: "عندما يزعجني أمر ما، أستطيع عادة التعبير عنه بالكلام في نفس اليوم." },
+  { id: "p_ctr_10", cat: "money", kind: "contradiction", type: "likert",
+    resolvesPair: ["m2", "m4"], sameDirectionAs: "m2",
+    en: "If a big purchase meant paying it off over the next year or two, I'd still say yes to something we really wanted.",
+    ar: "إذا كان شراء شيء كبير يعني التقسيط على مدى سنة أو سنتين، سأوافق طالما أننا نريده فعلًا." },
+  { id: "p_ctr_11", cat: "trust", kind: "contradiction", type: "likert",
+    resolvesPair: ["t1", "t4"], sameDirectionAs: "t1",
+    en: "I wouldn't think twice about handing my partner my phone, unlocked, right now.",
+    ar: "لن أتردد لحظة في تسليم شريكي هاتفي، مفتوحًا، الآن." },
+  { id: "p_ctr_12", cat: "growth", kind: "contradiction", type: "likert",
+    resolvesPair: ["g4", "g6"], sameDirectionAs: "g4",
+    en: "A last-minute change of plans is something I can usually roll with, not something that ruins my day.",
+    ar: "التغيير المفاجئ في الخطط أمر أتعامل معه عادة بمرونة، لا شيء يُفسد يومي." },
+];
+
+// ── B. Vague probes — one per real user-facing category (+1 extra: conflict) ──
+const VAGUE_PROBES = [
+  { id: "p_vg_01", cat: "appreciation", kind: "vague", type: "likert",
+    en: "I notice and say something when my partner does even small things well.",
+    ar: "ألاحظ وأعبّر عن تقديري حين يفعل شريكي أمرًا جيدًا حتى لو كان صغيرًا." },
+  { id: "p_vg_02", cat: "attachment", kind: "vague", type: "likert",
+    en: "When I'm stressed, my instinct is to reach out to my partner rather than handle it alone.",
+    ar: "عندما أكون متوترًا، ردة فعلي الأولى هي التواصل مع شريكي بدلًا من مواجهة الأمر وحدي." },
+  { id: "p_vg_03", cat: "career", kind: "vague", type: "mcq",
+    en: "If your career required moving away from family for a few years, you would:",
+    ar: "إذا تطلّب عملك الانتقال بعيدًا عن العائلة لبضع سنوات، فإنك:",
+    opts: [
+      { v: 7, en: "Do it without much hesitation", ar: "تفعل ذلك دون تردد يُذكر" },
+      { v: 5, en: "Do it, but it would be hard", ar: "تفعل ذلك، لكن الأمر سيكون صعبًا" },
+      { v: 3, en: "Only if my partner came too", ar: "فقط إذا رافقك شريكك" },
+      { v: 1, en: "Turn the opportunity down", ar: "ترفض الفرصة" },
+    ] },
+  { id: "p_vg_04", cat: "communication", kind: "vague", type: "likert",
+    en: "When I'm annoyed with my partner, I say so soon rather than waiting for them to notice.",
+    ar: "عندما أنزعج من شريكي، أقول ذلك سريعًا بدلًا من انتظاره ليلاحظ بنفسه." },
+  { id: "p_vg_05", cat: "conflict", kind: "vague", type: "likert",
+    en: "During an argument, I can usually stay calm enough to actually listen.",
+    ar: "خلال الخلاف، أستطيع عادة البقاء هادئًا بما يكفي للاستماع فعليًا." },
+  { id: "p_vg_06", cat: "conflict", kind: "vague", type: "mcq",
+    en: "Right after a real argument with your partner, you usually:",
+    ar: "مباشرة بعد خلاف حقيقي مع شريكك، عادة ما:",
+    opts: [
+      { v: 7, en: "Want to talk it through immediately", ar: "تريد التحدث عن الأمر فورًا" },
+      { v: 5, en: "Need a little time alone before talking", ar: "تحتاج وقتًا قصيرًا بمفردك قبل الحديث" },
+      { v: 3, en: "Act like nothing happened", ar: "تتصرف وكأن شيئًا لم يحدث" },
+      { v: 1, en: "Bring it up again once you've both calmed down", ar: "تعيد فتح الموضوع لاحقًا بعد أن تهدآ" },
+    ] },
+  { id: "p_vg_07", cat: "emotional", kind: "vague", type: "likert",
+    en: "I need my partner to reassure me, not just fix my problem, when I'm upset.",
+    ar: "أحتاج من شريكي أن يطمئنني، لا أن يكتفي بحل المشكلة فقط، عندما أكون منزعجًا." },
+  { id: "p_vg_08", cat: "fairness", kind: "vague", type: "likert",
+    en: "In my past relationships, chores and responsibilities were split roughly evenly.",
+    ar: "في علاقاتي السابقة، كانت الأعمال المنزلية والمسؤوليات مقسّمة بشكل متوازن تقريبًا." },
+  { id: "p_vg_09", cat: "family", kind: "vague", type: "mcq",
+    en: "How involved do you want grandparents to be in day-to-day parenting decisions?",
+    ar: "ما مدى المشاركة التي تريدها للأجداد في قرارات تربية الأطفال اليومية؟",
+    opts: [
+      { v: 7, en: "Very involved", ar: "مشاركة كبيرة" },
+      { v: 5, en: "Involved when we ask", ar: "مشاركة عند الطلب فقط" },
+      { v: 3, en: "Mostly hands-off", ar: "غير متدخّلين إلى حد كبير" },
+      { v: 1, en: "Not involved", ar: "بلا تدخّل نهائيًا" },
+    ] },
+  { id: "p_vg_10", cat: "future", kind: "vague", type: "likert",
+    en: "I have a fairly specific picture of where I want to be in 5 years.",
+    ar: "لديّ تصوّر واضح إلى حد ما لما أريد أن أكون عليه خلال 5 سنوات." },
+  { id: "p_vg_11", cat: "growth", kind: "vague", type: "likert",
+    en: "I'd rather grow and change alongside my partner than stay exactly who I am today.",
+    ar: "أفضّل أن أنمو وأتغيّر مع شريكي على أن أبقى كما أنا تمامًا اليوم." },
+  { id: "p_vg_12", cat: "intimacy", kind: "vague", type: "likert",
+    en: "Everyday physical affection matters to how loved I feel, not just intimacy itself.",
+    ar: "الحنان الجسدي اليومي مهم لشعوري بالحب، وليس فقط العلاقة الحميمة بحد ذاتها." },
+  { id: "p_vg_13", cat: "lifestyle", kind: "vague", type: "mcq",
+    en: "On a free weekend with no plans, you'd rather:",
+    ar: "في عطلة نهاية أسبوع خالية من الخطط، تفضّل أن:",
+    opts: [
+      { v: 7, en: "Fill it with people and activity", ar: "تملأها بالناس والنشاطات" },
+      { v: 5, en: "A mix of both", ar: "مزيج من الاثنين" },
+      { v: 3, en: "Keep it quiet and unplanned", ar: "تبقيها هادئة بلا خطط" },
+      { v: 1, en: "Spend it mostly alone, recharging", ar: "تقضيها بمفردك غالبًا لاستعادة طاقتك" },
+    ] },
+  { id: "p_vg_14", cat: "money", kind: "vague", type: "mcq",
+    en: "If you and your partner disagreed on a big purchase, you would:",
+    ar: "إذا اختلفت أنت وشريكك حول شراء كبير، فإنك:",
+    opts: [
+      { v: 7, en: "Talk until you both genuinely agree", ar: "تتحدثان حتى تتفقا فعليًا" },
+      { v: 5, en: "Defer to whoever earns more", ar: "تتنازل لمن يكسب أكثر" },
+      { v: 3, en: "Split it — everyone controls their own share", ar: "تقسّمانه — كل شخص يتحكم بحصته" },
+      { v: 1, en: "One of you usually just decides", ar: "أحدكما عادة ما يقرر وحده" },
+    ] },
+  { id: "p_vg_15", cat: "personality", kind: "vague", type: "likert",
+    en: "I'd rather be described as steady than exciting.",
+    ar: "أفضّل أن يُوصف بأنني ثابت المزاج على أن أُوصف بأنني مثير للحماس." },
+  { id: "p_vg_16", cat: "trust", kind: "vague", type: "likert",
+    en: "If my partner came home late without texting, I would assume something reasonable happened, not worry.",
+    ar: "لو تأخر شريكي في العودة دون رسالة، سأفترض أن هناك سببًا منطقيًا ولن أقلق." },
+  { id: "p_vg_17", cat: "values", kind: "vague", type: "mcq",
+    en: "If your partner's family traditions differed a lot from yours, you would:",
+    ar: "إذا اختلفت تقاليد عائلة شريكك كثيرًا عن تقاليد عائلتك، فإنك:",
+    opts: [
+      { v: 7, en: "Blend both comfortably", ar: "تمزج بينهما براحة" },
+      { v: 5, en: "Adopt theirs mostly", ar: "تتبنى تقاليدهم إلى حد كبير" },
+      { v: 3, en: "Keep mine, respect theirs", ar: "تحافظ على تقاليدك مع احترام تقاليدهم" },
+      { v: 1, en: "This would genuinely be hard for me", ar: "سيكون هذا صعبًا عليّ فعلًا" },
+    ] },
+];
+
+// ── C. Dealbreaker probes — deepen the app's 3 REAL flagged topics only ────
+const DEALBREAKER_PROBES = [
+  // children (family) — f1 is db:true
+  { id: "p_db_01", cat: "family", kind: "dealbreaker", type: "mcq",
+    en: "If you and your partner wanted a different number of children, that would be:",
+    ar: "إذا اختلفتما أنت وشريكك في عدد الأطفال الذي تريدانه، فإن ذلك سيكون:",
+    opts: [
+      { v: 7, en: "Something we could compromise on", ar: "أمرًا يمكن أن نتوافق عليه" },
+      { v: 5, en: "A real problem, but workable", ar: "مشكلة حقيقية، لكنها قابلة للحل" },
+      { v: 3, en: "Very hard to move past", ar: "صعب تجاوزه فعلًا" },
+      { v: 1, en: "A dealbreaker for me", ar: "أمرًا لا أستطيع تجاوزه إطلاقًا" },
+    ] },
+  { id: "p_db_02", cat: "family", kind: "dealbreaker", type: "mcq",
+    en: "How soon after marriage would you want to start trying for children?",
+    ar: "بعد كم من الوقت من الزواج تريد البدء بمحاولة الإنجاب؟",
+    opts: [
+      { v: 7, en: "Right away", ar: "فورًا" },
+      { v: 5, en: "Within 2–3 years", ar: "خلال سنتين إلى ثلاث سنوات" },
+      { v: 3, en: "After 5+ years", ar: "بعد أكثر من 5 سنوات" },
+      { v: 1, en: "Not sure yet", ar: "لست متأكدًا بعد" },
+    ] },
+  { id: "p_db_03", cat: "family", kind: "dealbreaker", type: "likert",
+    en: "If my partner wanted to be a stay-at-home parent for a few years, I would fully support that.",
+    ar: "لو أراد شريكي التفرغ لتربية الأطفال لبضع سنوات، سأدعم ذلك تمامًا." },
+  { id: "p_db_04", cat: "family", kind: "dealbreaker", type: "likert",
+    en: "I have a clear idea of the parenting style I want, and it matters a lot to me that my partner shares it.",
+    ar: "لديّ تصوّر واضح لأسلوب التربية الذي أريده، ويهمني كثيرًا أن يشاركني شريكي فيه." },
+  // religion (values) — v1 is db:true
+  { id: "p_db_05", cat: "values", kind: "dealbreaker", type: "mcq",
+    en: "If you have children, how important is it that they're raised in your specific religion?",
+    ar: "إذا رُزقت بأطفال، ما مدى أهمية أن يُربّوا على دينك تحديدًا؟",
+    opts: [
+      { v: 7, en: "Essential — not negotiable", ar: "أساسي — غير قابل للتفاوض" },
+      { v: 5, en: "Important, open to blending traditions", ar: "مهم، لكنني منفتح على مزج التقاليد" },
+      { v: 3, en: "Not that important to me", ar: "ليس مهمًا لي كثيرًا" },
+      { v: 1, en: "I'd prefer they choose for themselves", ar: "أفضّل أن يختاروا بأنفسهم" },
+    ] },
+  { id: "p_db_06", cat: "values", kind: "dealbreaker", type: "likert",
+    en: "I would find it hard to be with someone who doesn't share my religious practice, even if we agree on everything else.",
+    ar: "سيكون من الصعب عليّ الارتباط بشخص لا يشاركني ممارستي الدينية، حتى لو اتفقنا في كل شيء آخر." },
+  { id: "p_db_07", cat: "values", kind: "dealbreaker", type: "mcq",
+    en: "How would you feel about a partner from a different religious background than yours?",
+    ar: "ما شعورك تجاه شريك من خلفية دينية مختلفة عن خلفيتك؟",
+    opts: [
+      { v: 7, en: "Completely fine", ar: "لا مشكلة إطلاقًا" },
+      { v: 5, en: "Fine, with some adjustment", ar: "مقبول، مع بعض التكيّف" },
+      { v: 3, en: "Difficult, but possible", ar: "صعب، لكنه ممكن" },
+      { v: 1, en: "Not something I'd consider", ar: "ليس أمرًا سأفكر فيه" },
+    ] },
+  { id: "p_db_08", cat: "values", kind: "dealbreaker", type: "likert",
+    en: "Religious holidays and traditions are something I want to keep at the center of our home life.",
+    ar: "المناسبات والتقاليد الدينية أمر أريد أن يبقى في صميم حياة بيتنا." },
+  // relocation (growth) — g1 is db:true
+  { id: "p_db_09", cat: "growth", kind: "dealbreaker", type: "mcq",
+    en: "If your partner's dream job required relocating far from your family, you would:",
+    ar: "إذا تطلّبت وظيفة أحلام شريكك الانتقال بعيدًا عن عائلتك، فإنك:",
+    opts: [
+      { v: 7, en: "Go, without much hesitation", ar: "تنتقل دون تردد يُذكر" },
+      { v: 5, en: "Go, but it would be hard", ar: "تنتقل، لكن الأمر سيكون صعبًا" },
+      { v: 3, en: "Ask them to turn it down", ar: "تطلب منه رفض الفرصة" },
+      { v: 1, en: "This would be a serious problem for us", ar: "سيكون هذا مشكلة جدية بيننا" },
+    ] },
+  { id: "p_db_10", cat: "growth", kind: "dealbreaker", type: "likert",
+    en: "Living close to my extended family matters enough to me that I'd turn down a major opportunity elsewhere.",
+    ar: "القرب من عائلتي الممتدة يهمني بما يكفي لأرفض فرصة كبيرة في مكان آخر." },
+  { id: "p_db_11", cat: "growth", kind: "dealbreaker", type: "mcq",
+    en: "How far would you be willing to live from your parents long-term?",
+    ar: "إلى أي مسافة توافق على العيش بعيدًا عن والديك على المدى الطويل؟",
+    opts: [
+      { v: 7, en: "Anywhere — distance doesn't matter to me", ar: "أي مكان — المسافة لا تهمني" },
+      { v: 5, en: "Same country is fine, doesn't have to be close", ar: "نفس البلد يكفي، لا يلزم أن يكون قريبًا" },
+      { v: 3, en: "Same city", ar: "نفس المدينة" },
+      { v: 1, en: "Very close — it matters a lot to me", ar: "قريب جدًا — هذا يهمني كثيرًا" },
+    ] },
+];
+
+const PROBE_ITEMS = [...CONTRADICTION_PROBES, ...VAGUE_PROBES, ...DEALBREAKER_PROBES];
+
+// ── D. Open-text items ──────────────────────────────────────────────────────
+// Always skippable (see the q.type === "text" branch in app.js's
+// renderQuestion()/answerOptionalText()). maxLen matches the 500-char cap in
+// spec §4.3 and the Supabase row size limit already enforced by
+// supabase/schema.sql's answers_size check.
+const OPEN_TEXT_ITEMS = [
+  { id: "ot_conflict_1", cat: "conflict", type: "text", maxLen: 500,
+    en: "Think about the last real disagreement you had with a partner or someone close to you. What was it about, and how did it end?",
+    ar: "فكّر في آخر خلاف حقيقي حصل بينك وبين شريك أو شخص مقرّب منك. ما كان سببه، وكيف انتهى؟" },
+  { id: "ot_money_1", cat: "money", type: "text", maxLen: 500,
+    en: "Describe a time money caused real tension between you and someone close to you.",
+    ar: "صف موقفًا سبّب فيه المال توترًا حقيقيًا بينك وبين شخص مقرّب منك." },
+  { id: "ot_family_1", cat: "family", type: "text", maxLen: 500,
+    en: "What's one thing about how you were raised that you definitely want to repeat — or definitely don't — with your own family one day?",
+    ar: "ما هو الشيء الذي تربّيت عليه وتريد بالتأكيد تكراره — أو عدم تكراره أبدًا — مع عائلتك يومًا ما؟" },
+  { id: "ot_emotional_1", cat: "emotional", type: "text", maxLen: 500,
+    en: "When you're going through something hard, what do you actually need from a partner — and what tends to backfire?",
+    ar: "عندما تمر بشيء صعب، ما الذي تحتاجه فعلًا من شريكك — وما الذي عادة ما يأتي بنتيجة عكسية؟" },
+];
+
+const AI_ITEMS_BY_ID = Object.fromEntries(
+  [...PROBE_ITEMS, ...OPEN_TEXT_ITEMS].map(q => [q.id, q])
+);
+
+
+// MatchWise v8 — the silent loop.
+// -----------------------------------------------------------------------------
+// Owns everything about "when do we ask the Insight Engine something, and
+// what do we do with the answer" during the quiz. Nothing in here ever
+// writes to quiz.answers, catScores, or the Alignment Index — it only ever
+// reorders/injects unanswered questions in quiz.bank, strictly after the
+// question currently on screen. See "MatchWise Vault/v8 - AI Assessor
+// Spec.md" §4 and §0.1 point 5 for why that boundary is non-negotiable.
+//
+// Two entry points js/app.js calls, per spec §9:
+//   session.onAnswer(q, v, bank, i, answers)   — call right after recording
+//                                                 an answer, before advancing
+//   session.drainPending(bank, i)              — call at the top of
+//                                                 renderQuestion(), before
+//                                                 reading bank[i]
+// Everything else here is either a pure helper (exported individually for
+// unit testing) or private state inside createAiSession().
+// -----------------------------------------------------------------------------
+
+
+const CHECKPOINT_EVERY_N_ANSWERS = 6;
+const MAX_CHECKPOINTS = 8;
+const MAX_INJECTED_TOTAL = 8;
+const MAX_ABANDONS = 2;
+const TIMEOUT_MS = 4000; // must match supabase/functions/assess/index.ts TIMEOUT_BUDGET_MS and js/ai-client-v8.js DEFAULT_TIMEOUT_MS
+
+// ------------------------------------------------------------- pure logic --
+// Exported individually so tests can exercise them without a full session
+// object or a real fetch.
+
+/**
+ * scoring-v3.js's normV3() reverses reverse-scored items but isn't exported
+ * (it's a module-private helper there). This is a deliberate, exact copy —
+ * three lines, unlikely to drift — kept here rather than exporting the
+ * original, so this file never has to reach into scoring-v3.js's internals.
+ * If scoring-v3.js's normV3() ever changes, this must change with it.
+ * Exported because js/scoring-v8.js (Phase 4) needs the identical
+ * normalization to numerically verify a claimed pair resolution — one
+ * source of truth for "what does this raw answer actually mean" across the
+ * whole v8 layer, rather than a third copy.
+ */
+function normLikert(q, v) {
+  if (v == null || typeof v !== "number") return null;
+  return q.rv ? 8 - v : v;
+}
+
+/**
+ * Which of the app's real consistency pairs are CURRENTLY contradicted —
+ * both sides answered, normalized gap >= 3 — exactly the condition
+ * profileConfidenceV3() in scoring-v3.js docks 10 confidence points for.
+ * This is the real, existing signal v8 routes probes toward (spec §0.1
+ * point 2), not an invented per-trait confidence value.
+ */
+function computeUnresolvedPairs(bank, answers) {
+  const byId = Object.fromEntries(bank.map(q => [q.id, q]));
+  const out = [];
+  for (const [aId, bId] of CONSISTENCY_PAIRS) {
+    const qa = byId[aId], qb = byId[bId];
+    if (!qa || !qb) continue; // pair not present in this person's resolved bank
+    const va = answers[aId], vb = answers[bId];
+    if (va == null || vb == null) continue; // both sides must be answered to judge
+    const na = normLikert(qa, va), nb = normLikert(qb, vb);
+    if (na == null || nb == null) continue;
+    const gap = Math.abs(na - nb);
+    if (gap >= 3) out.push({ aId, bId, gap });
+  }
+  return out;
+}
+
+/** How many of each category's items are answered so far vs. how many exist in this person's resolved bank. */
+function computeCategoryCoverage(bank, answers) {
+  const totals = new Map();
+  for (const q of bank) {
+    const e = totals.get(q.cat) || { total: 0, answered: 0 };
+    e.total += 1;
+    if (answers[q.id] != null) e.answered += 1;
+    totals.set(q.cat, e);
+  }
+  return [...totals.entries()].map(([cat, e]) => ({ cat, answered: e.answered, total: e.total }));
+}
+
+/**
+ * The state packet, built field by field from an explicit allow-list —
+ * never by spreading `quiz` or a profile object. This is what guarantees
+ * name/code/id/date can never reach the network, no matter what fields
+ * app.js's quiz/profile objects carry now or later. See spec §4.3 and §8.
+ */
+function buildRoutingPacket({ sessionId, lang, bank, i, answers, probeBudgetLeft, checkpointIndex }) {
+  const answered = [];
+  const openText = [];
+  for (const q of bank.slice(0, i + 1)) {
+    const v = answers[q.id];
+    if (v == null) continue;
+    if (q.type === "text") openText.push({ id: q.id, text: String(v).slice(0, 500) });
+    else answered.push({ id: q.id, cat: q.cat, type: q.type, value: v });
+  }
+
+  return {
+    sessionId,
+    lang: lang === "ar" ? "ar" : "en",
+    phase: "routing",
+    answered,
+    openText,
+    unresolvedPairs: computeUnresolvedPairs(bank, answers),
+    categoryCoverage: computeCategoryCoverage(bank, answers),
+    remainingItemIds: bank.slice(i + 1).map(q => q.id),
+    probeBudgetLeft,
+    checkpointIndex,
+  };
+}
+
+/**
+ * Applies a validated directive to `bank` IN PLACE. Every mutation targets
+ * index >= i + 1 only — the answered-or-onscreen prefix (indices 0..i) is
+ * never touched. Returns how many new items were actually injected (for the
+ * caller's silence-budget bookkeeping) and which pair-resolution claims
+ * passed the checks that are possible to make right now.
+ *
+ * What "possible right now" means: we can confirm a claimed resolution
+ * references a pair that really was unresolved when this checkpoint's
+ * packet was sent, and that the item claimed to resolve it was really
+ * injected this same checkpoint. We CANNOT yet confirm the resolution
+ * actually narrows anything — that needs the probe's own answer plus the
+ * probe item's clarifying-target metadata, neither of which exists until
+ * Phase 3 writes real probe items and Phase 4 wires scoring-v8.js. Numeric
+ * confirmation is Phase 4's job; this only forwards structurally-sound
+ * claims for Phase 4 to finish checking. See spec §5.
+ */
+function applyDirective(directive, { bank, i, sentUnresolvedPairs, injectedSoFar, itemsById = AI_ITEMS_BY_ID }) {
+  const remainingIds = new Set(bank.slice(i + 1).map(q => q.id));
+  const injectedThisRound = [];
+  const confirmedResolutionCandidates = [];
+
+  // --- reorder: move a named FEW items to the front of the queue ----------
+  // `reorder` is read as "show these next, in this order" — not a full
+  // permutation of the entire unanswered tail (asking the model to
+  // enumerate every remaining id just to prioritize two of them would be
+  // both wasteful and unrealistic to get right). Every id must be a real,
+  // currently-unanswered id with no duplicates; anything else and the whole
+  // reorder is rejected rather than partially applied. Ids not named in
+  // `reorder` keep their existing relative order, appended after the named
+  // ones — nothing is ever dropped or silently reshuffled beyond what was
+  // asked for.
+  const reorderIds = directive.reorder || [];
+  const isValidReorder =
+    reorderIds.length > 0 &&
+    reorderIds.length <= remainingIds.size &&
+    reorderIds.every(id => remainingIds.has(id)) &&
+    new Set(reorderIds).size === reorderIds.length;
+
+  if (isValidReorder) {
+    const tail = bank.slice(i + 1);
+    const byId = Object.fromEntries(tail.map(q => [q.id, q]));
+    const named = new Set(reorderIds);
+    const rest = tail.filter(q => !named.has(q.id));
+    const newTail = [...reorderIds.map(id => byId[id]), ...rest];
+    bank.splice(i + 1, tail.length, ...newTail);
+  }
+  // An invalid reorder is silently ignored — the tail keeps its existing
+  // order. This is not an error; a failed check just means the directive
+  // didn't earn the trust to reorder anything this time.
+
+  // --- inject: unknown ids dropped, budget enforced ------------------------
+  const budgetLeft = Math.max(0, MAX_INJECTED_TOTAL - injectedSoFar);
+  const toInject = (directive.injectItems || [])
+    .filter(id => itemsById[id])                       // must exist in the probe bank
+    .filter(id => !remainingIds.has(id))               // not already in the unanswered tail
+    .filter((id, idx, arr) => arr.indexOf(id) === idx) // de-dupe
+    .slice(0, budgetLeft);
+
+  if (toInject.length > 0) {
+    const items = toInject.map(id => itemsById[id]);
+    bank.splice(i + 1, 0, ...items);
+    injectedThisRound.push(...toInject);
+  }
+
+  // --- pair resolutions: forward only the structurally-sound claims -------
+  const sentPairKeys = new Set((sentUnresolvedPairs || []).map(p => `${p.aId}|${p.bId}`));
+  for (const r of directive.pairResolutions || []) {
+    if (!sentPairKeys.has(`${r.aId}|${r.bId}`)) continue;      // wasn't actually unresolved when asked
+    if (!injectedThisRound.includes(r.resolvedBy)) continue;    // wasn't actually injected this checkpoint
+    confirmedResolutionCandidates.push(r);
+  }
+
+  return { injectedCount: injectedThisRound.length, confirmedResolutionCandidates };
+}
+
+// ------------------------------------------------------------ the session --
+
+/**
+ * @param {{ lang: string, sessionId: string, enabled: boolean }} opts
+ *   `enabled` should reflect the "Enhanced online analysis" setting (added
+ *   in Phase 6) — when false, this session never calls the network and
+ *   every method below is a harmless no-op. Callers in app.js should also
+ *   just skip creating a session at all when disabled (`aiSession = null`
+ *   and every call site uses `aiSession?.method(...)`), but the internal
+ *   guard exists too so a stale session can't outlive a mid-quiz toggle.
+ */
+function createAiSession({ lang, sessionId, enabled = true }) {
+  let answeredSinceCheckpoint = 0;
+  let checkpointsUsed = 0;
+  let injectedSoFar = 0;
+  let abandons = 0;
+  let disabled = !enabled;
+
+  // The most recent checkpoint's in-flight call and the unresolvedPairs it
+  // was sent with (needed later by applyDirective to validate resolution
+  // claims). Only one checkpoint is ever in flight at a time — a new one
+  // isn't fired while a previous one hasn't resolved, so there's nothing to
+  // race here.
+  let inFlight = null;
+  let inFlightUnresolvedPairs = [];
+  let pendingDirective = null;
+
+  // Everything Phase 4/5 will want once the quiz is done: which pairs were
+  // ever flagged, and which resolution claims survived the structural check
+  // above. Exposed via getSessionSummary(); not consumed by anything yet.
+  const resolutionLog = [];
+
+  async function fireCheckpoint(bank, i, answers) {
+    const packet = buildRoutingPacket({
+      sessionId, lang, bank, i, answers,
+      probeBudgetLeft: Math.max(0, MAX_INJECTED_TOTAL - injectedSoFar),
+      checkpointIndex: checkpointsUsed,
+    });
+    inFlightUnresolvedPairs = packet.unresolvedPairs;
+
+    const result = await postPacket(packet, { timeoutMs: TIMEOUT_MS });
+    inFlight = null;
+
+    if (result == null) {
+      abandons += 1;
+      if (abandons >= MAX_ABANDONS) disabled = true;
+      return;
+    }
+    if (!isValidRoutingDirective(result)) return; // discarded whole, spec §4.4
+    pendingDirective = result;
+  }
+
+  return {
+    /** Call right after recording an answer (quiz.answers[q.id] = v), before advancing. Never awaited by the caller — fires and returns immediately. */
+    onAnswer(q, v, bank, i, answers) {
+      if (disabled) return;
+      answeredSinceCheckpoint += 1;
+
+      const next = bank[i + 1];
+      const boundaryCrossed = !!(next && next.cat !== q.cat);
+      const due = answeredSinceCheckpoint >= CHECKPOINT_EVERY_N_ANSWERS || boundaryCrossed;
+
+      if (due && checkpointsUsed < MAX_CHECKPOINTS && !inFlight) {
+        answeredSinceCheckpoint = 0;
+        checkpointsUsed += 1;
+        inFlight = fireCheckpoint(bank, i, answers);
+      }
+    },
+
+    /**
+     * Call at the very top of renderQuestion(), before reading bank[i].
+     * Synchronous, idempotent — if nothing has resolved since the last
+     * call, this does nothing. Mutates `bank` in place via applyDirective().
+     */
+    drainPending(bank, i) {
+      if (disabled || !pendingDirective) return;
+      const directive = pendingDirective;
+      pendingDirective = null;
+
+      const { injectedCount, confirmedResolutionCandidates } = applyDirective(directive, {
+        bank, i,
+        sentUnresolvedPairs: inFlightUnresolvedPairs,
+        injectedSoFar,
+      });
+      injectedSoFar += injectedCount;
+      resolutionLog.push(...confirmedResolutionCandidates);
+    },
+
+    getSessionSummary() {
+      return {
+        checkpointsUsed, injectedSoFar, abandons, disabled,
+        resolutionLog: resolutionLog.slice(),
+      };
+    },
+  };
+}
+
+
+// MatchWise v8 — confidence adjustment.
+// -----------------------------------------------------------------------------
+// Wraps compareV4() (scoring-v4.js) — READ-ONLY. Nothing in this file ever
+// writes to a profile, a catScore, the Alignment Index, or the base
+// confidence value compareV4() returns. It computes one new, separate,
+// capped number — displayConfidence — for report-v8.js (Phase 5) to show
+// alongside (not instead of) the real index. See "MatchWise Vault/
+// v8 - AI Assessor Spec.md" §5 and the credibility guardrail in §2.
+//
+// Two independent jobs live here, matching Build Plan Phase 4:
+//   1. Numerically verify a claimed consistency-pair "resolution" (js/
+//      ai-session-v8.js already checked this structurally — was the pair
+//      really unresolved, was the resolver really injected — but could not
+//      check whether the probe's own answer actually means anything,
+//      because that needs the SAME normalization scoring-v3.js's own
+//      profileConfidenceV3() uses, applied to a real answer that only
+//      exists once the quiz is finished).
+//   2. Verify an open-text "signal" quote is a literal substring of what
+//      the person actually wrote — the real backstop against fabricated
+//      evidence, enforced in code rather than by asking the model nicely.
+// -----------------------------------------------------------------------------
+
+
+const RESOLUTION_BONUS_PER_PAIR = 5;
+const RESOLUTION_BONUS_CAP = 10;      // couple-level cap, combined across both partners — see computeDisplayConfidence()
+const DISPLAY_CONFIDENCE_CEILING = 95; // never claim certainty, matching CONFIDENCE_FLOOR's spirit in scoring-v3.js
+// How close the probe's own normalized answer must land to one of the two
+// original (contradicting) normalized answers to count as "siding with"
+// it — on the same 1..7 normalized scale profileConfidenceV3() itself uses
+// a gap of >=3 to flag as a contradiction in the first place. A tolerance
+// of 1 is deliberately strict: an ambiguous probe answer sitting between
+// the two originals proves nothing and must not earn anything back.
+const NARROW_TOLERANCE = 1;
+
+// ------------------------------------------------------- pair resolutions --
+
+/**
+ * Reads the reserved __ai8 key app.js's finishQuiz() seeds into a finished
+ * profile's answers (see that function's comment for why it lives there).
+ * Tolerant of anything malformed, missing, or from a pre-v8 profile —
+ * always returns an array, never throws.
+ */
+function parseResolutionLog(profile) {
+  try {
+    const raw = profile && profile.answers && profile.answers.__ai8;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The numeric check ai-session-v8.js's applyDirective() explicitly deferred
+ * (see its own comment). `candidate` is one {aId, bId, resolvedBy} entry
+ * that already passed the structural checks (pair really unresolved,
+ * resolver really injected) at checkpoint time. This asks: once actually
+ * answered, does the probe's own value genuinely side with one of the two
+ * original answers, rather than sitting ambiguously between them?
+ *
+ * `bank` must be this same person's own resolved bank (js/scoring-v4.js's
+ * bankFor(profile)) — gender/stage resolution can change item text, so
+ * looking ids up in the wrong person's bank would be wrong, even though in
+ * practice rv/pair metadata has not been observed to vary by resolution.
+ */
+function validateNumericResolution(candidate, bank, answers) {
+  const probe = AI_ITEMS_BY_ID[candidate.resolvedBy];
+  if (!probe) return false; // shouldn't happen — ai-session-v8.js already checked this id was injected
+
+  const probeVal = answers[candidate.resolvedBy];
+  if (probeVal == null || typeof probeVal !== "number") return false; // skipped, or not actually answered
+
+  const byId = Object.fromEntries(bank.map(q => [q.id, q]));
+  const qa = byId[candidate.aId], qb = byId[candidate.bId];
+  if (!qa || !qb) return false;
+
+  const na = normLikert(qa, answers[candidate.aId]);
+  const nb = normLikert(qb, answers[candidate.bId]);
+  if (na == null || nb == null) return false;
+
+  // Normalize the probe's own answer with the same helper — respects a
+  // probe's own `rv` flag if it has one (none of the current 40 do; see
+  // questions-v8.js's header comment on `sameDirectionAs`), so this stays
+  // correct if a future reverse-worded probe is ever added.
+  const np = normLikert(probe, probeVal);
+  if (np == null) return false;
+
+  const dA = Math.abs(np - na), dB = Math.abs(np - nb);
+  return Math.min(dA, dB) <= NARROW_TOLERANCE;
+}
+
+/**
+ * One person's own raw, UNCAPPED resolution points (count of distinct
+ * validated pairs × 5). Deliberately uncapped here — the couple-level cap
+ * is applied once, after combining both partners, in
+ * computeDisplayConfidence(). A pair is only ever counted once per person
+ * even if somehow claimed twice.
+ */
+function computeResolutionBonus(resolutionLog, bank, answers) {
+  const seenPairs = new Set();
+  let count = 0;
+  for (const candidate of resolutionLog) {
+    if (!candidate || typeof candidate.aId !== "string" || typeof candidate.bId !== "string") continue;
+    const key = [candidate.aId, candidate.bId].sort().join("|");
+    if (seenPairs.has(key)) continue;
+    if (!validateNumericResolution(candidate, bank, answers)) continue;
+    seenPairs.add(key);
+    count += 1;
+  }
+  return count * RESOLUTION_BONUS_PER_PAIR;
+}
+
+/**
+ * The one function report-v8.js (Phase 5) actually calls. `compareResult`
+ * is compareV4(pa, pb)'s own return value — passed in rather than
+ * recomputed, since compareV4() only exposes a single couple-level
+ * confidence (Math.min of both partners), not each partner's individually,
+ * and itemPoolV4() (needed to recompute either separately) is a private
+ * helper in scoring-v4.js this file deliberately does not reach into.
+ *
+ * Both partners' validated resolutions are summed BEFORE the couple-level
+ * cap is applied (rather than capping each at +10 separately, which could
+ * imply up to +20 combined) — a couple's displayed confidence rises by at
+ * most 10 points total, however that credit was earned between the two of
+ * them. This is an editorial choice, same as every other weight in this
+ * app — see README / Known Limitations — not something derived from data.
+ */
+function computeDisplayConfidence(pa, pb, compareResult) {
+  const bankA = bankFor(pa), bankB = bankFor(pb);
+  const bonusA = computeResolutionBonus(parseResolutionLog(pa), bankA, pa.answers || {});
+  const bonusB = computeResolutionBonus(parseResolutionLog(pb), bankB, pb.answers || {});
+  const resolutionBonus = Math.min(bonusA + bonusB, RESOLUTION_BONUS_CAP);
+  const baseConfidence = compareResult.confidence;
+  const displayConfidence = Math.min(baseConfidence + resolutionBonus, DISPLAY_CONFIDENCE_CEILING);
+  return { displayConfidence, baseConfidence, resolutionBonus, bonusA, bonusB };
+}
+
+// -------------------------------------------------------- open-text quotes --
+
+/**
+ * `extraction` is one { itemId, signals: [...] } response for one open-text
+ * answer (spec §5). `openTextAnswers` is a plain { itemId: rawText } map —
+ * report-v8.js builds this from pa.answers / pb.answers filtered to the
+ * ot_* ids, per person, and calls this once per person's extraction.
+ *
+ * Returns only the signals that (a) match the shape schema
+ * (isValidOpenTextSignal, ai-schema-v8.js) AND (b) quote a literal
+ * substring of what this person actually wrote. Anything failing either
+ * check is dropped silently — never partially trusted, never "cleaned up"
+ * to make it fit. This is the real backstop against a fabricated quote,
+ * enforced in code, not a prompt instruction asking the model to behave.
+ */
+function filterValidOpenTextSignals(extraction, openTextAnswers) {
+  if (!extraction || typeof extraction.itemId !== "string" || !Array.isArray(extraction.signals)) return [];
+  const original = openTextAnswers[extraction.itemId];
+  if (typeof original !== "string" || original.length === 0) return [];
+  return extraction.signals.filter(s => isValidOpenTextSignal(s) && original.includes(s.quote));
+}
+
+
+// MatchWise v8 — the report layer.
+// -----------------------------------------------------------------------------
+// Never returns an HTML string for innerHTML assignment. renderReportV7()'s
+// own output stays the trusted innerHTML under #reportRoot exactly as it is
+// today; everything in this file is appended afterward as real DOM nodes
+// built with document.createElement() + .textContent only. See "MatchWise
+// Vault/v8 - AI Assessor Spec.md" §6.3 and the "AI never sets the numbers"
+// guardrail in §2.
+//
+// Nothing here recomputes anything scoring-v3/v4 already computed. Every
+// real number this file shows (bigFive, attachment, loveLanguage,
+// worldview, catScores, strengths/challenges, the base confidence) is read
+// straight off compareV4()'s own return value — never rederived. The one
+// new number, displayConfidence, comes from scoring-v8.js's
+// computeDisplayConfidence(), which itself only adds a small, capped,
+// numerically-verified bonus on top of that same base confidence.
+//
+// Two network calls, fired in the background from renderCoupleReport() in
+// app.js, AFTER the real (v7) report is already on screen and show("report")
+// has already run:
+//   1. report_person — once per partner. Produces a short first-person-style
+//      card (summary / consistency / mattersMost) plus, optionally, signals
+//      extracted from that partner's own open-text answers (each one
+//      re-verified as a literal quote by scoring-v8.js's
+//      filterValidOpenTextSignals — never trusted just because it parsed).
+//   2. report_couple — once, only if at least one report_person call
+//      produced something. Produces evidence-linked insights, discussion
+//      prompts, and divergence notes. Every evidence[].itemId is checked
+//      here against what both partners actually answered (or, for an
+//      open-text citation, against that specific partner's own
+//      already-quote-verified extraction) — an insight or conversation
+//      citing anything else is dropped whole, never partially trusted.
+//
+// If either call fails, times out, or comes back empty (exactly what the
+// Phase 1 stub deployed today returns), buildAiReportAddon() resolves to
+// null and nothing is appended — the report stays byte-identical to
+// renderReportV7()'s own output. No empty cards, no error shown.
+//
+// Both calls are cached (js/ai-cache-v8.js, keyed on phase+who+lang plus
+// the actual answers involved) — this is that module's originally-stated
+// purpose: app.js's language toggle re-runs renderCoupleReport() on every
+// EN/AR switch while a report is open, and without this, every toggle would
+// re-bill both calls for content that can't have changed. Only a
+// shape-validated response is ever cached; a failed call is never cached,
+// so a down endpoint is retried on the next toggle rather than staying
+// silent forever.
+// -----------------------------------------------------------------------------
+
+// Single line on purpose — build-single.js's strip() only removes whole-line
+// `import`s; a wrapped import leaves a dangling `} from "...";` in the
+// bundle (a syntax error that surfaces only when someone opens the built
+// single-file preview). See that file's own sanity-check comment.
+
+const REPORT_TIMEOUT_MS = 4000; // matches ai-session-v8.js's own TIMEOUT_MS / supabase/functions/assess/index.ts
+// (named distinctly from ai-session-v8.js's TIMEOUT_MS so the two module-
+// scoped constants don't collide once build-single.js concatenates every
+// module into one shared top-level scope for the offline single-file build)
+
+// ------------------------------------------------------------- text table --
+
+const T8 = {
+  confTitle: { en: "A closer look at consistency", ar: "نظرة أقرب على الاتساق" },
+  confBody: {
+    en: (base, display) =>
+      `A few answers were double-checked against each other for consistency. Where they held up, the confidence score moved from ${base}% to ${display}%.`,
+    ar: (base, display) =>
+      `تمّ التحقق من بعض الإجابات للتأكد من اتساقها مع بعضها. وحيثما ثبت الاتساق، ارتفعت نسبة الثقة من ${base}% إلى ${display}%.`,
+  },
+  personTitle: { en: "In their own words", ar: "بكلماتهما" },
+  consistencyLabel: { en: "Consistency", ar: "الاتساق" },
+  mattersMostLabel: { en: "What seems to matter most", ar: "ما يبدو أنه الأهمّ" },
+  insightsTitle: { en: "Evidence-Backed Insights", ar: "رؤى مبنية على أدلة" },
+  strengthLabel: { en: "Strength", ar: "نقطة قوة" },
+  challengeLabel: { en: "Worth discussing", ar: "يستحق النقاش" },
+  conversationsTitle: { en: "Conversations worth having", ar: "أحاديث تستحق أن تدور بينكما" },
+  divergencesTitle: { en: "Where you see things differently", ar: "أين تختلف رؤيتكما" },
+};
+
+// ------------------------------------------------------ request packets --
+
+/** Distinct, validated, deduped pair resolutions this person actually earned — see scoring-v8.js's own computeResolutionBonus() for the identical dedupe rule. Sent so the report_person prompt can reference "you clarified X" without re-deriving it. */
+function resolvedPairsFor(p) {
+  const bank = bankFor(p);
+  const answers = p.answers || {};
+  const seen = new Set();
+  const out = [];
+  for (const c of parseResolutionLog(p)) {
+    if (!c || typeof c.aId !== "string" || typeof c.bId !== "string") continue;
+    const key = [c.aId, c.bId].sort().join("|");
+    if (seen.has(key)) continue;
+    if (!validateNumericResolution(c, bank, answers)) continue;
+    seen.add(key);
+    out.push({ aId: c.aId, bId: c.bId, resolvedBy: c.resolvedBy });
+  }
+  return out;
+}
+
+/** This person's own open-text answers, truncated the same way buildRoutingPacket() does. */
+function openTextFor(p) {
+  const answers = p.answers || {};
+  const out = [];
+  for (const item of OPEN_TEXT_ITEMS) {
+    const v = answers[item.id];
+    if (typeof v === "string" && v.trim()) out.push({ id: item.id, cat: item.cat, text: v.slice(0, 500) });
+  }
+  return out;
+}
+
+/**
+ * Explicit allow-list, same discipline as ai-session-v8.js's
+ * buildRoutingPacket() — never built by spreading a profile object. `who` is
+ * just the tag "a"/"b" this session uses to keep the two calls apart; it is
+ * not a name and is never paired with one anywhere in this packet.
+ *
+ * bigFive / attachment / loveLanguage / worldview all come straight out of
+ * compareResult (compareV4()'s own return value) rather than being
+ * recomputed here — one source of truth for those numbers, same principle
+ * scoring-v8.js's computeDisplayConfidence() already follows.
+ */
+function buildPersonPacket({ sessionId, lang, who, compareResult, p }) {
+  const bank = bankFor(p);
+  const answers = p.answers || {};
+  return {
+    sessionId,
+    lang: lang === "ar" ? "ar" : "en",
+    phase: "report_person",
+    who,
+    bigFive: compareResult.bigFive[who],
+    attachment: compareResult.attachment[who],
+    loveLanguage: compareResult.love[who],
+    worldview: compareResult.worldview[who],
+    categoryCoverage: computeCategoryCoverage(bank, answers),
+    unresolvedPairs: computeUnresolvedPairs(bank, answers),
+    resolvedPairs: resolvedPairsFor(p),
+    openText: openTextFor(p),
+  };
+}
+
+/** Real v4 bank item ids BOTH partners actually answered — the only ids a couple-level insight is allowed to cite as evidence, alongside each partner's own already-quote-verified open-text extractions (checked separately, at filter time). */
+function sharedAnsweredIds(pa, pb) {
+  const bankA = bankFor(pa), bankB = bankFor(pb);
+  const idsA = new Set(bankA.map(q => q.id));
+  const shared = new Set();
+  for (const q of bankB) {
+    if (!idsA.has(q.id)) continue;
+    if ((pa.answers || {})[q.id] == null || (pb.answers || {})[q.id] == null) continue;
+    shared.add(q.id);
+  }
+  return shared;
+}
+
+function buildCouplePacket({ sessionId, lang, pa, pb, compareResult, personA, personB, shared }) {
+  const byId = Object.fromEntries(bankFor(pa).map(q => [q.id, q]));
+  const answeredShared = [...shared]
+    .map(id => ({ id, cat: byId[id] && byId[id].cat, type: byId[id] && byId[id].type, a: pa.answers[id], b: pb.answers[id] }))
+    .filter(e => e.cat);
+
+  const openTextSignals = [];
+  for (const ex of (personA && personA.extractions) || []) for (const s of ex.signals) openTextSignals.push({ itemId: ex.itemId, who: "a", ...s });
+  for (const ex of (personB && personB.extractions) || []) for (const s of ex.signals) openTextSignals.push({ itemId: ex.itemId, who: "b", ...s });
+
+  return {
+    sessionId,
+    lang: lang === "ar" ? "ar" : "en",
+    phase: "report_couple",
+    catScores: compareResult.catScores || null,
+    catLean: compareResult.catLean || null,
+    strengths: compareResult.strengths || null,
+    challenges: compareResult.challenges || null,
+    unresolvedPairsA: computeUnresolvedPairs(bankFor(pa), pa.answers || {}),
+    unresolvedPairsB: computeUnresolvedPairs(bankFor(pb), pb.answers || {}),
+    answeredShared,
+    openTextSignals,
+    cardA: (personA && personA.card) || null,
+    cardB: (personB && personB.card) || null,
+  };
+}
+
+// ------------------------------------------------------- network + verify --
+
+/** Never throws, never returns a partial/unverified result. Returns null when there is nothing safe or non-empty to show. */
+async function fetchPersonDirective({ sessionId, lang, who, compareResult, p }) {
+  const cacheKey = cacheKeyFor(`report_person:${who}:${lang}`, p.answers || {});
+  let result = getCached(cacheKey);
+  if (result == null) {
+    const packet = buildPersonPacket({ sessionId, lang, who, compareResult, p });
+    result = await postPacket(packet, { timeoutMs: REPORT_TIMEOUT_MS });
+    if (result == null) return null;
+    if (!isValidReportPersonDirective(result)) return null;
+    setCached(cacheKey, result); // only a shape-validated response is ever cached
+  }
+
+  const openTextAnswers = {};
+  for (const item of OPEN_TEXT_ITEMS) {
+    const v = (p.answers || {})[item.id];
+    if (typeof v === "string" && v.trim()) openTextAnswers[item.id] = v;
+  }
+
+  const extractions = [];
+  const raw = Array.isArray(result.openTextExtractions) ? result.openTextExtractions : [];
+  for (const ex of raw) {
+    if (!ex || typeof ex.itemId !== "string" || !Array.isArray(ex.signals)) continue;
+    const kept = filterValidOpenTextSignals(ex, openTextAnswers);
+    if (kept.length) extractions.push({ itemId: ex.itemId, signals: kept });
+  }
+
+  const c = result.card;
+  const cardEmpty = !c.summary.trim() && !c.consistency.trim() && (!c.mattersMost || c.mattersMost.length === 0);
+  if (cardEmpty && extractions.length === 0) return null; // no empty cards, spec §6.4
+
+  return { card: c, extractions };
+}
+
+async function fetchCoupleDirective({ sessionId, lang, pa, pb, compareResult, personA, personB }) {
+  const shared = sharedAnsweredIds(pa, pb);
+  const cacheKey = cacheKeyFor(`report_couple:${lang}`, pa.answers || {}, pb.answers || {});
+  let result = getCached(cacheKey);
+  if (result == null) {
+    const packet = buildCouplePacket({ sessionId, lang, pa, pb, compareResult, personA, personB, shared });
+    result = await postPacket(packet, { timeoutMs: REPORT_TIMEOUT_MS });
+    if (result == null) return null;
+    if (!isValidReportCoupleDirective(result)) return null;
+    setCached(cacheKey, result);
+  }
+
+  const idsA = new Set(((personA && personA.extractions) || []).map(ex => ex.itemId));
+  const idsB = new Set(((personB && personB.extractions) || []).map(ex => ex.itemId));
+  const isGrounded = e => {
+    if (!e || typeof e.itemId !== "string") return false;
+    if (shared.has(e.itemId)) return true;
+    if (e.who === "a" && idsA.has(e.itemId)) return true;
+    if (e.who === "b" && idsB.has(e.itemId)) return true;
+    return false;
+  };
+
+  // Drop the WHOLE insight/conversation the moment any one of its evidence
+  // claims doesn't resolve to something both partners actually answered (or
+  // a quote-verified open-text extraction from the partner it names) — never
+  // partially trusted, same rule as everywhere else in the v8 layer.
+  const insights = (result.insights || []).filter(ins =>
+    Array.isArray(ins.evidence) && ins.evidence.length > 0 && ins.evidence.every(isGrounded));
+
+  const conversations = (result.conversations || []).filter(c =>
+    !Array.isArray(c.evidence) || c.evidence.length === 0 || c.evidence.every(isGrounded));
+
+  const knownCats = new Set([...bankFor(pa), ...bankFor(pb)].map(q => q.cat));
+  const divergences = (result.divergences || []).filter(d => knownCats.has(d.cat));
+
+  if (!insights.length && !conversations.length && !divergences.length) return null; // no empty cards
+  return { insights, conversations, divergences };
+}
+
+/**
+ * The one function app.js calls. Fire-and-forget from renderCoupleReport(),
+ * strictly AFTER the real v7 report is already on screen — see that
+ * function's own comment for why this never blocks or replaces it.
+ * Resolves to null (never throws) when there's nothing safe or non-empty to
+ * add, so the caller's job reduces to "append this if it's not null".
+ */
+async function buildAiReportAddon({ sessionId, lang, pa, pb, compareResult }) {
+  // Always computable, no network needed — the confidence bonus already
+  // numerically verified against this person's own real answers during the
+  // quiz itself (scoring-v8.js). Shown whenever it's actually nonzero.
+  const confidence = computeDisplayConfidence(pa, pb, compareResult);
+
+  const [personA, personB] = await Promise.all([
+    fetchPersonDirective({ sessionId: `${sessionId}:a`, lang, who: "a", compareResult, p: pa }),
+    fetchPersonDirective({ sessionId: `${sessionId}:b`, lang, who: "b", compareResult, p: pb }),
+  ]);
+
+  let couple = null;
+  if (personA || personB) {
+    couple = await fetchCoupleDirective({ sessionId, lang, pa, pb, compareResult, personA, personB });
+  }
+
+  const hasContent = confidence.resolutionBonus > 0 || !!personA || !!personB || !!couple;
+  if (!hasContent) return null;
+
+  return { confidence, personA, personB, couple };
+}
+
+// ------------------------------------------------------------------ render --
+// Every element below is built with createElement()/.textContent — never
+// innerHTML, never a template string parsed as markup. This is the one hard
+// line the whole Insight Engine draws around anything model-authored: a
+// crafted answer or a compromised response can, at absolute worst, show up
+// as literal inert text on screen. It can never become markup, a script, or
+// an event handler.
+
+function el(tag, opts = {}) {
+  const node = document.createElement(tag);
+  if (opts.cls) node.className = opts.cls;
+  if (opts.text != null) node.textContent = opts.text;
+  return node;
+}
+
+function renderConfidenceCard(conf, lang) {
+  const card = el("div", { cls: "card report-section" });
+  card.appendChild(el("h3", { text: T8.confTitle[lang] }));
+  card.appendChild(el("p", { cls: "muted small", text: T8.confBody[lang](conf.baseConfidence, conf.displayConfidence) }));
+  return card;
+}
+
+function renderPersonCard(personResult, person, lang) {
+  const card = el("div", { cls: "card report-section" });
+  card.appendChild(el("h3", { text: `${T8.personTitle[lang]} — ${person.name}` }));
+  const { summary, consistency, mattersMost } = personResult.card;
+  if (summary) card.appendChild(el("p", { cls: "small", text: summary }));
+  if (consistency) {
+    const p = el("p", { cls: "muted small" });
+    p.appendChild(document.createTextNode(`${T8.consistencyLabel[lang]}: `));
+    p.appendChild(document.createTextNode(consistency));
+    card.appendChild(p);
+  }
+  if (mattersMost && mattersMost.length) {
+    card.appendChild(el("p", { cls: "muted small", text: `${T8.mattersMostLabel[lang]}:` }));
+    const ul = el("ul", { cls: "clean" });
+    for (const m of mattersMost) ul.appendChild(el("li", { text: m }));
+    card.appendChild(ul);
+  }
+  return card;
+}
+
+function renderCoupleCard(couple, lang) {
+  const wrap = document.createElement("div");
+  let any = false;
+
+  if (couple.insights.length) {
+    const card = el("div", { cls: "card report-section" });
+    card.appendChild(el("h3", { text: T8.insightsTitle[lang] }));
+    for (const ins of couple.insights) {
+      const block = el("div", { cls: "report-section" });
+      const label = ins.kind === "strength" ? T8.strengthLabel[lang] : T8.challengeLabel[lang];
+      block.appendChild(el("h4", { cls: "lean-head", text: `${label} — ${ins.title}` }));
+      block.appendChild(el("p", { cls: "small", text: ins.text }));
+      if (ins.evidence.length) {
+        const ul = el("ul", { cls: "clean" });
+        for (const e of ins.evidence) ul.appendChild(el("li", { cls: "muted small", text: e.summary }));
+        block.appendChild(ul);
+      }
+      card.appendChild(block);
+    }
+    wrap.appendChild(card);
+    any = true;
+  }
+
+  if (couple.conversations.length) {
+    const card = el("div", { cls: "card report-section" });
+    card.appendChild(el("h3", { text: T8.conversationsTitle[lang] }));
+    const ul = el("ul", { cls: "clean" });
+    for (const c of couple.conversations) {
+      const li = document.createElement("li");
+      const b = el("b", { text: c.prompt });
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(` — ${c.why}`));
+      ul.appendChild(li);
+    }
+    card.appendChild(ul);
+    wrap.appendChild(card);
+    any = true;
+  }
+
+  if (couple.divergences.length) {
+    const card = el("div", { cls: "card report-section" });
+    card.appendChild(el("h3", { text: T8.divergencesTitle[lang] }));
+    const ul = el("ul", { cls: "clean" });
+    for (const d of couple.divergences) ul.appendChild(el("li", { text: d.text }));
+    card.appendChild(ul);
+    wrap.appendChild(card);
+    any = true;
+  }
+
+  return any ? wrap : null;
+}
+
+/**
+ * Builds the DOM fragment app.js appends to #reportRoot, or returns null
+ * when addon is null or (defensively) turns out to have nothing renderable.
+ * Never touches #reportRoot itself — the caller decides where and whether
+ * to attach it.
+ */
+function renderAiReportAddon(addon, pa, pb, lang) {
+  if (!addon) return null;
+  const frag = document.createElement("div");
+  let any = false;
+
+  if (addon.confidence.resolutionBonus > 0) {
+    frag.appendChild(renderConfidenceCard(addon.confidence, lang));
+    any = true;
+  }
+  if (addon.personA) { frag.appendChild(renderPersonCard(addon.personA, pa, lang)); any = true; }
+  if (addon.personB) { frag.appendChild(renderPersonCard(addon.personB, pb, lang)); any = true; }
+  if (addon.couple) {
+    const card = renderCoupleCard(addon.couple, lang);
+    if (card) { frag.appendChild(card); any = true; }
+  }
+
+  return any ? frag : null;
+}
+
+
 // MatchWise — app controller
+// v8 — Insight Engine. Entirely optional: every call site below is guarded
+// so the app behaves exactly as it does today with this off or unreachable.
+// See "MatchWise Vault/v8 - AI Assessor Spec.md" §9 for why these are the
+// only three touch points.
 
 // ---------- v4 routing ----------
 // v4 is the version new assessments are taken in. Older profiles are NOT
@@ -6039,7 +7501,7 @@ function redactAnswerList(s) {
 }
 
 const $ = s => document.querySelector(s);
-const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports" };
+const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports", aiEnabled: "mw_ai_enabled" };
 
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -6047,6 +7509,17 @@ let theme = localStorage.getItem(LS.theme) || (prefersDark() ? "dark" : "light")
 // quiz.bank: the actual question list being asked, chosen at "Begin" from
 // the intimacy toggle. quiz.intimacy: the toggle's current value.
 let quiz = { name: "", i: 0, answers: {}, bank: [], intimacy: true };
+
+// v8 — Insight Engine. No UI toggle exists yet (Phase 6 adds the Settings
+// checkbox bound to this same key) — until then this defaults to on with no
+// way to turn it off in the UI, but the localStorage key is already the
+// real switch so Phase 6 needs no further app.js changes, only a checkbox.
+// aiSession is (re)created per quiz in the "begin-quiz" handler below and is
+// null whenever the AI layer is off or between quizzes — every call site
+// uses `aiSession?.method(...)`, so null is always a safe, silent no-op.
+function aiEnabled() { return localStorage.getItem(LS.aiEnabled) !== "0"; }
+let aiSession = null;
+if (aiEnabled()) warmUp();
 
 // ---------- persistence ----------
 const getProfiles = () => JSON.parse(localStorage.getItem(LS.profiles) || "[]");
@@ -6210,6 +7683,10 @@ function openPreviewPicker() {
 
 // ---------- quiz ----------
 function renderQuestion() {
+  // v8: apply any Insight Engine directive that resolved since the last
+  // render — reorders/injects only ever land after quiz.i, so this is safe
+  // to call unconditionally before quiz.bank[quiz.i] is read below.
+  aiSession?.drainPending(quiz.bank, quiz.i);
   const q = quiz.bank[quiz.i];
   $("#progressFill").style.width = (quiz.i / quiz.bank.length * 100) + "%";
   $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: quiz.bank.length });
@@ -6224,6 +7701,21 @@ function renderQuestion() {
     html += `<div class="likert"><div class="likert-scale">` +
       [1,2,3,4,5,6,7].map(v => `<button class="likert-dot ${quiz.answers[q.id]===v?"sel":""}" data-v="${v}">${v}</button>`).join("") +
       `</div><div class="likert-labels"><span>${t("likertLow", lang)}</span><span>${t("likertHigh", lang)}</span></div></div>`;
+  } else if (q.type === "text") {
+    // v8 — open-text items (js/questions-v8.js). Always skippable: this is
+    // the one question type in the whole quiz that doesn't require an
+    // answer to advance. See spec §1 — even the presence of a Skip option
+    // here must look identical in style to every other question's controls.
+    const maxLen = q.maxLen || 500;
+    const existing = quiz.answers[q.id] || "";
+    html += `<div class="q-text-input">
+      <textarea id="textAnswer" maxlength="${maxLen}">${existing}</textarea>
+      <div class="q-text-counter"><span id="textCount">${existing.length}</span>/${maxLen}</div>
+    </div>
+    <div class="q-actions">
+      <button class="opt" data-text-action="skip">${t("skipBtn", lang)}</button>
+      <button class="opt" data-text-action="continue">${t("continueBtn", lang)}</button>
+    </div>`;
   } else {
     html += q.opts.map((o, idx) => {
       const val = "v" in o ? o.v : o.k;
@@ -6233,11 +7725,20 @@ function renderQuestion() {
   }
   card.innerHTML = html;
 
-  card.querySelectorAll(".likert-dot").forEach(b => b.onclick = () => answer(q, Number(b.dataset.v)));
-  card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
-    const o = q.opts[Number(b.dataset.idx)];
-    answer(q, "v" in o ? o.v : o.k);
-  });
+  if (q.type === "text") {
+    const ta = $("#textAnswer"), count = $("#textCount");
+    const maxLen = q.maxLen || 500;
+    ta.placeholder = t("optTextPlaceholder", lang);
+    ta.oninput = () => { count.textContent = ta.value.length; };
+    card.querySelector('[data-text-action="skip"]').onclick = () => answerOptionalText(q, null);
+    card.querySelector('[data-text-action="continue"]').onclick = () => answerOptionalText(q, ta.value.trim().slice(0, maxLen));
+  } else {
+    card.querySelectorAll(".likert-dot").forEach(b => b.onclick = () => answer(q, Number(b.dataset.v)));
+    card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      const o = q.opts[Number(b.dataset.idx)];
+      answer(q, "v" in o ? o.v : o.k);
+    });
+  }
 }
 // The 220ms pause is the selection animation. Without a guard, taps landing
 // inside that window queue extra advances — and on the last question each one
@@ -6246,9 +7747,10 @@ function renderQuestion() {
 // produced 62 profiles from a single run. `advancing` swallows anything that
 // arrives before the transition completes.
 let advancing = false;
-function answer(q, v) {
-  if (advancing) return;
-  quiz.answers[q.id] = v;
+// Shared by answer() and answerOptionalText() (v8's open-text items — the
+// one question type that can be skipped, so it needs its own entry point
+// but the exact same advance/guard timing as every other question).
+function advanceQuiz() {
   advancing = true;
   setTimeout(() => {
     if (quiz.i < quiz.bank.length - 1) { quiz.i++; advancing = false; renderQuestion(); }
@@ -6257,7 +7759,44 @@ function answer(q, v) {
     else finishQuiz();
   }, 220);
 }
+function answer(q, v) {
+  if (advancing) return;
+  quiz.answers[q.id] = v;
+  // v8: record the answer and, if a checkpoint is due, fire it now — while
+  // the user is still looking at the 220ms selection animation below, well
+  // before they'd reach whatever question comes next. Never awaited: this
+  // returns immediately and the checkpoint resolves (or times out) in the
+  // background. See spec §4.2.
+  aiSession?.onAnswer(q, v, quiz.bank, quiz.i, quiz.answers);
+  advanceQuiz();
+}
+// v8 — open-text items only. `text` is null on Skip: nothing is written to
+// quiz.answers (a skipped item must not appear "answered" to
+// categoryCoverage or to the Insight Engine — see ai-session-v8.js), and
+// the Insight Engine isn't notified either, since skipping isn't a signal
+// worth spending checkpoint bookkeeping on.
+function answerOptionalText(q, text) {
+  if (advancing) return;
+  if (text) {
+    quiz.answers[q.id] = text;
+    aiSession?.onAnswer(q, text, quiz.bank, quiz.i, quiz.answers);
+  }
+  advanceQuiz();
+}
 function finishQuiz() {
+  // v8: carry this run's confirmed pair-resolution claims along with the
+  // profile itself — under a reserved key, the same pattern GENDER_KEY/
+  // STAGE_KEY already use, so it travels through every existing channel
+  // (localStorage, .json export, the Supabase share code) with zero schema
+  // changes, and is automatically invisible to compareV4()/
+  // profileConfidenceV3() since neither iterates unknown answer keys. See
+  // js/scoring-v8.js's parseResolutionLog(). Numeric confirmation of each
+  // claim (does it actually narrow anything) happens there, not here —
+  // this only persists what ai-session-v8.js structurally validated.
+  if (aiSession) {
+    const log = aiSession.getSessionSummary().resolutionLog;
+    if (log.length) quiz.answers.__ai8 = JSON.stringify(log);
+  }
   const profile = {
     id: "p_" + Date.now(),
     name: quiz.name,
@@ -6312,11 +7851,13 @@ async function publishCode(profile) {
 let lastPair = null;
 function renderCoupleReport(pa, pb) {
   const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  let compareResult = null;
   if (isV4(pa) || isV4(pb)) {
     // v7 wraps v6 (which wraps v5, which wraps v4) and adds the Type
     // Preferences card. Every layer is presentation-only: compareV4()'s index,
     // confidence and deal-breaker capping are untouched by all of them.
-    $("#reportRoot").innerHTML = renderReportV7(compareV4(pa, pb), pa, pb, lang);
+    compareResult = compareV4(pa, pb);
+    $("#reportRoot").innerHTML = renderReportV7(compareResult, pa, pb, lang);
   } else if (bothV2) {
     $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
   } else {
@@ -6324,6 +7865,25 @@ function renderCoupleReport(pa, pb) {
   }
   lastPair = { pa, pb };
   show("report");
+
+  // v8: purely additive, never blocks or replaces what's already on screen
+  // above. Fires in the background after the real report is already showing
+  // and appends its own DOM node only if/when something safe and non-empty
+  // comes back — see report-v8.js's own header for the full contract. Guarded
+  // against a stale report (language switch, a different pair opened while
+  // this was in flight) by re-checking both lastPair and the active screen
+  // before ever touching the DOM.
+  if (compareResult && aiEnabled()) {
+    const myPair = lastPair;
+    buildAiReportAddon({ sessionId: crypto.randomUUID(), lang, pa, pb, compareResult })
+      .then(addon => {
+        if (lastPair !== myPair) return;
+        if (!$("#screen-report").classList.contains("active")) return;
+        const node = renderAiReportAddon(addon, pa, pb, lang);
+        if (node) $("#reportRoot").appendChild(node);
+      })
+      .catch(() => {}); // a report-layer failure must never surface to the user
+  }
 }
 function generate() {
   const list = getProfiles();
@@ -6361,6 +7921,12 @@ document.addEventListener("click", e => {
     if (stage) seed[STAGE_KEY] = stage;
     quiz = { name: n, i: 0, gender, stage, answers: seed, intimacy: includeIntimacy,
              bank: buildBankV4({ gender, stage, intimacy: includeIntimacy }) };
+    // v8: a fresh session per quiz, never reused across runs. sessionId is
+    // random and lives only for this run — never stored, never sent
+    // alongside anything that could identify who took the quiz. See spec §8.
+    aiSession = aiEnabled()
+      ? createAiSession({ lang, sessionId: crypto.randomUUID(), enabled: true })
+      : null;
     advancing = false;   // release the tap guard for the new run
     show("quiz"); renderQuestion();
   }
@@ -6526,6 +8092,16 @@ $("#demoBtn").onclick = () => {
 // ---------- v5: encrypt-exports toggle ----------
 $("#encryptExportsCheck").checked = encryptExportsOn();
 $("#encryptExportsCheck").onchange = e => localStorage.setItem(LS.encrypt, e.target.checked ? "1" : "0");
+
+// ---------- v8: Insight Engine opt-out toggle ----------
+// Reflects aiEnabled() on load; writing "0"/"1" is exactly what aiEnabled()
+// itself reads (see its definition near the top of this file). Turning this
+// off takes effect on the NEXT quiz/report — a session already in progress
+// (an existing `aiSession`, or an addon fetch already in flight from
+// renderCoupleReport()) is not torn down mid-flight, matching how the
+// encrypt-exports toggle above also only affects what happens next.
+$("#aiEnabledCheck").checked = aiEnabled();
+$("#aiEnabledCheck").onchange = e => localStorage.setItem(LS.aiEnabled, e.target.checked ? "1" : "0");
 
 // ---------- init ----------
 applyTheme();

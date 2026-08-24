@@ -13,9 +13,9 @@
 // a response that isn't valid JSON — ends the same way: resolve to null.
 // -----------------------------------------------------------------------------
 
-const SUPABASE_URL = "https://xtrtilekegrzatnmgyul.supabase.co";
-const SUPABASE_KEY = "sb_publishable_Q0HMULAWDVVKtV7J6pbw_w_q4H42HYQ";
-const ASSESS_URL = `${SUPABASE_URL}/functions/v1/assess`;
+const AI8_SUPABASE_URL = "https://xtrtilekegrzatnmgyul.supabase.co";
+const AI8_SUPABASE_KEY = "sb_publishable_Q0HMULAWDVVKtV7J6pbw_w_q4H42HYQ";
+const ASSESS_URL = `${AI8_SUPABASE_URL}/functions/v1/assess`;
 
 const DEFAULT_TIMEOUT_MS = 4000; // must match the edge function's own budget — see supabase/functions/assess/index.ts TIMEOUT_BUDGET_MS
 const MIN_RETRY_BUDGET_MS = 800; // below this, a retry can't realistically complete — skip it and just return null
@@ -33,8 +33,8 @@ async function attempt(packet, ms, signalExternal) {
     const res = await fetch(ASSESS_URL, {
       method: "POST",
       headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "apikey": AI8_SUPABASE_KEY,
+        "Authorization": `Bearer ${AI8_SUPABASE_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(packet),
@@ -97,8 +97,8 @@ export function warmUp() {
     fetch(ASSESS_URL, {
       method: "POST",
       headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "apikey": AI8_SUPABASE_KEY,
+        "Authorization": `Bearer ${AI8_SUPABASE_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ sessionId: "warmup", lang: "en", phase: "routing",
