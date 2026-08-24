@@ -14,6 +14,12 @@ import { renderReportV6, renderSoloV6 } from "./report-v6.js";
 import { renderReportV7, renderSoloV7 } from "./report-v7.js";
 import { buildDemoProfiles, DEMO_IDS } from "./demo-v5.js";
 import { encryptText, decryptText, isEncrypted } from "./crypto-v5.js";
+// v8 — Insight Engine. Entirely optional: every call site below is guarded
+// so the app behaves exactly as it does today with this off or unreachable.
+// See "MatchWise Vault/v8 - AI Assessor Spec.md" §9 for why these are the
+// only three touch points.
+import { createAiSession } from "./ai-session-v8.js";
+import { warmUp } from "./ai-client-v8.js";
 
 // ---------- v4 routing ----------
 // v4 is the version new assessments are taken in. Older profiles are NOT
@@ -48,7 +54,7 @@ function redactAnswerList(s) {
 }
 
 const $ = s => document.querySelector(s);
-const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports" };
+const LS = { profiles: "mw_profiles", lang: "mw_lang", theme: "mw_theme", encrypt: "mw_encrypt_exports", aiEnabled: "mw_ai_enabled" };
 
 let lang = localStorage.getItem(LS.lang) || "en";
 const prefersDark = () => !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -56,6 +62,17 @@ let theme = localStorage.getItem(LS.theme) || (prefersDark() ? "dark" : "light")
 // quiz.bank: the actual question list being asked, chosen at "Begin" from
 // the intimacy toggle. quiz.intimacy: the toggle's current value.
 let quiz = { name: "", i: 0, answers: {}, bank: [], intimacy: true };
+
+// v8 — Insight Engine. No UI toggle exists yet (Phase 6 adds the Settings
+// checkbox bound to this same key) — until then this defaults to on with no
+// way to turn it off in the UI, but the localStorage key is already the
+// real switch so Phase 6 needs no further app.js changes, only a checkbox.
+// aiSession is (re)created per quiz in the "begin-quiz" handler below and is
+// null whenever the AI layer is off or between quizzes — every call site
+// uses `aiSession?.method(...)`, so null is always a safe, silent no-op.
+function aiEnabled() { return localStorage.getItem(LS.aiEnabled) !== "0"; }
+let aiSession = null;
+if (aiEnabled()) warmUp();
 
 // ---------- persistence ----------
 const getProfiles = () => JSON.parse(localStorage.getItem(LS.profiles) || "[]");
@@ -219,6 +236,10 @@ function openPreviewPicker() {
 
 // ---------- quiz ----------
 function renderQuestion() {
+  // v8: apply any Insight Engine directive that resolved since the last
+  // render — reorders/injects only ever land after quiz.i, so this is safe
+  // to call unconditionally before quiz.bank[quiz.i] is read below.
+  aiSession?.drainPending(quiz.bank, quiz.i);
   const q = quiz.bank[quiz.i];
   $("#progressFill").style.width = (quiz.i / quiz.bank.length * 100) + "%";
   $("#progressText").textContent = t("qOf", lang, { a: quiz.i + 1, b: quiz.bank.length });
@@ -258,6 +279,12 @@ let advancing = false;
 function answer(q, v) {
   if (advancing) return;
   quiz.answers[q.id] = v;
+  // v8: record the answer and, if a checkpoint is due, fire it now — while
+  // the user is still looking at the 220ms selection animation below, well
+  // before they'd reach whatever question comes next. Never awaited: this
+  // returns immediately and the checkpoint resolves (or times out) in the
+  // background. See spec §4.2.
+  aiSession?.onAnswer(q, v, quiz.bank, quiz.i, quiz.answers);
   advancing = true;
   setTimeout(() => {
     if (quiz.i < quiz.bank.length - 1) { quiz.i++; advancing = false; renderQuestion(); }
@@ -370,6 +397,12 @@ document.addEventListener("click", e => {
     if (stage) seed[STAGE_KEY] = stage;
     quiz = { name: n, i: 0, gender, stage, answers: seed, intimacy: includeIntimacy,
              bank: buildBankV4({ gender, stage, intimacy: includeIntimacy }) };
+    // v8: a fresh session per quiz, never reused across runs. sessionId is
+    // random and lives only for this run — never stored, never sent
+    // alongside anything that could identify who took the quiz. See spec §8.
+    aiSession = aiEnabled()
+      ? createAiSession({ lang, sessionId: crypto.randomUUID(), enabled: true })
+      : null;
     advancing = false;   // release the tap guard for the new run
     show("quiz"); renderQuestion();
   }
