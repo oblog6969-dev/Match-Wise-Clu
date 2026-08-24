@@ -31,6 +31,12 @@ export const STR = {
   beginBtn:     { en: "Begin", ar: "ابدأ" },
   backBtn:      { en: "Back", ar: "رجوع" },
   qOf:          { en: "Question {a} of {b}", ar: "سؤال {a} من {b}" },
+  // v8 — the only UI-visible strings the Insight Engine's open-text items
+  // need. Everything else about v8 is invisible by design; see
+  // "MatchWise Vault/v8 - AI Assessor Spec.md" §1.
+  optTextPlaceholder: { en: "Type as much or as little as you'd like…", ar: "اكتب بقدر ما تريد…" },
+  skipBtn:      { en: "Skip", ar: "تخطّ" },
+  continueBtn:  { en: "Continue", ar: "متابعة" },
   doneTitle:    { en: "Profile created", ar: "تم إنشاء الملف" },
   doneSub:      { en: "Send this code to your partner. When they enter it, you both see the compatibility report — no files to send.", ar: "أرسل هذا الرمز إلى شريكك. عند إدخاله ترون معًا تقرير التوافق — بلا ملفات تُرسل." },
   yourCode:     { en: "Your test code", ar: "رمز اختبارك" },
