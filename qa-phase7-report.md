@@ -35,24 +35,27 @@ Result of running the 17-item checklist from [[v8 - Build Plan]]'s Phase 7 secti
 
 ## What this QA gate does NOT cover
 
-**The edge function deployed right now is still the Phase 1 stub.** `stubRoutingDirective()` always returns empty (`injectItems: []`), and `stubReportDirective()` always returns empty cards/insights. This means:
+> [!note] Update after this report was written
+> The section below described the state right after Phase 7. Since then, the Phase 1 stub was replaced with a real call to Google's Gemini API (provider switched from the originally-planned Anthropic — the user asked for a non-Anthropic option; see [[Decisions Log]]) — `gemini-2.5-flash-lite` for routing, `gemini-2.5-pro` for report calls. `isValidReportDirective`'s loose placeholder was also tightened into real phase-aware validators matching the client exactly. This was verified offline against a live local server (`tests/assess-edge-function.test.js`, 9 checks: missing-key fallback, a genuine failing call against the real Gemini endpoint with a bogus key degrading cleanly, rate limiting, CORS, size limits) — but the *successful* model-response path (a real, valid `GEMINI_API_KEY`) has not been live-tested yet, since that key must be set by the user via the Supabase dashboard/CLI (no MCP tool exists for setting edge function secrets). Until that key is set, the function's observable behaviour is still identical to "AI off" — the paragraphs below describe that now-resolved-except-for-the-live-key state accurately as history.
+
+**The edge function deployed right at Phase 7 was still the Phase 1 stub.** `stubRoutingDirective()` always returned empty (`injectItems: []`), and `stubReportDirective()` always returned empty cards/insights. This meant:
 
 - Every guarantee above is real and tested.
-- But in production today, the Insight Engine currently does **nothing observable** — no probes actually get injected, no report addon ever appears, because the stub never has anything to say. The app behaves exactly as if the toggle were off, for every real user, right now.
+- But in production at that time, the Insight Engine did **nothing observable** — no probes actually got injected, no report addon ever appeared, because the stub never had anything to say. The app behaved exactly as if the toggle were off, for every real user.
 
-The Build Plan's own Phase 1 step 5 ("swap the stub for the real API call") was never completed. Turning this into a feature that actually does something needs, in order:
-1. Confirming the `ANTHROPIC_API_KEY` secret is set on the Supabase project (Phase 0 step 5 — not verifiable from this session; only checkable from the Supabase dashboard or CLI).
-2. Writing the actual prompts for the three phases (`routing`, `report_person`, `report_couple`) that call the Anthropic API and shape its output into the already-fixed directive schemas.
-3. Replacing `stubRoutingDirective()`/`stubReportDirective()` in `supabase/functions/assess/index.ts` with the real call, redeploying.
+The Build Plan's own Phase 1 step 5 ("swap the stub for the real API call") was completed after this report, per the note above. What's left before the feature is live in the sense of actually influencing anyone's test:
+1. The user sets the `GEMINI_API_KEY` secret on the Supabase project (`supabase secrets set GEMINI_API_KEY=...`, key from https://aistudio.google.com/apikey).
+2. A live curl test of a real (non-bogus-key) call, to confirm actual model output round-trips through the schema validators correctly — same style as this report's own live rate-limit testing.
 
-Everything built in Phases 1–7 is the safety harness around that call — validated shapes, evidence grounding, quote verification, budget caps, the "AI never sets scores" guarantee. None of it needed the real model to be tested, by design (that's the whole point of stubbing first). But it's worth being clear that the feature isn't "live" in the sense of actually influencing anyone's test yet.
+Everything built in Phases 1–7 is the safety harness around that call — validated shapes, evidence grounding, quote verification, budget caps, the "AI never sets scores" guarantee. None of it needed the real model to be tested, by design (that's the whole point of stubbing first).
 
 ## Test inventory (all passing as of this report)
 
 - 45 unit tests across `tests/ai-session-v8.test.js` (10), `tests/questions-v8.test.js` (9), `tests/scoring-v8.test.js` (19), `tests/report-v8.test.js` (7)
-- 9 new unit tests in `tests/ai-client-v8.test.js`
+- 9 unit tests in `tests/ai-client-v8.test.js`
 - 5 jsdom smoke suites: `tests/questions-v8.render.smoke.mjs`, `tests/report-v8.render.smoke.mjs`, `tests/report-v8.integration.render.smoke.mjs`, `tests/build-single.render.smoke.mjs`, `tests/qa-v8-phase7.render.smoke.mjs` (15 checks)
 - 1 live integration test against the real deployed function: `tests/ai-session-v8.integration.test.js`
+- Added after this report (Gemini integration): 9 checks in `tests/assess-edge-function.test.js` — runs the real edge function as a local Deno server and hits it with real HTTP requests (missing-key fallback for all 3 phases, a genuinely-failing live call to Gemini with a bogus key degrading cleanly, malformed body, unknown phase, rate-limit cutoff, CORS trusted/untrusted origin, oversized body)
 
 ## See also
 [[v8 - Build Plan]] · [[v8 - AI Assessor Spec]] · [[Known Limitations]] · [[Decisions Log]]
