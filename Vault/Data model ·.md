@@ -4,7 +4,7 @@ tags:
   - matchwise
   - technical
 ---
-# Data Model
+[[]]# Data Model
 
 ## A profile
 Each completed assessment becomes a **profile**: an id, creation date, app version, raw answers, and derived trait scores. Version (v2/v3/v4…) is inferred from *which question ids appear in the answers* — nothing is stamped on the file. That's what lets old profiles keep working with zero migration.

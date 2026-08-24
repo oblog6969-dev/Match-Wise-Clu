@@ -20,6 +20,7 @@ import { encryptText, decryptText, isEncrypted } from "./crypto-v5.js";
 // only three touch points.
 import { createAiSession } from "./ai-session-v8.js";
 import { warmUp } from "./ai-client-v8.js";
+import { buildAiReportAddon, renderAiReportAddon } from "./report-v8.js";
 
 // ---------- v4 routing ----------
 // v4 is the version new assessments are taken in. Older profiles are NOT
@@ -404,11 +405,13 @@ async function publishCode(profile) {
 let lastPair = null;
 function renderCoupleReport(pa, pb) {
   const bothV2 = !isV3Answers(pa.answers) && !isV3Answers(pb.answers);
+  let compareResult = null;
   if (isV4(pa) || isV4(pb)) {
     // v7 wraps v6 (which wraps v5, which wraps v4) and adds the Type
     // Preferences card. Every layer is presentation-only: compareV4()'s index,
     // confidence and deal-breaker capping are untouched by all of them.
-    $("#reportRoot").innerHTML = renderReportV7(compareV4(pa, pb), pa, pb, lang);
+    compareResult = compareV4(pa, pb);
+    $("#reportRoot").innerHTML = renderReportV7(compareResult, pa, pb, lang);
   } else if (bothV2) {
     $("#reportRoot").innerHTML = renderReport(compare(pa, pb), pa, pb, lang);
   } else {
@@ -416,6 +419,25 @@ function renderCoupleReport(pa, pb) {
   }
   lastPair = { pa, pb };
   show("report");
+
+  // v8: purely additive, never blocks or replaces what's already on screen
+  // above. Fires in the background after the real report is already showing
+  // and appends its own DOM node only if/when something safe and non-empty
+  // comes back — see report-v8.js's own header for the full contract. Guarded
+  // against a stale report (language switch, a different pair opened while
+  // this was in flight) by re-checking both lastPair and the active screen
+  // before ever touching the DOM.
+  if (compareResult && aiEnabled()) {
+    const myPair = lastPair;
+    buildAiReportAddon({ sessionId: crypto.randomUUID(), lang, pa, pb, compareResult })
+      .then(addon => {
+        if (lastPair !== myPair) return;
+        if (!$("#screen-report").classList.contains("active")) return;
+        const node = renderAiReportAddon(addon, pa, pb, lang);
+        if (node) $("#reportRoot").appendChild(node);
+      })
+      .catch(() => {}); // a report-layer failure must never surface to the user
+  }
 }
 function generate() {
   const list = getProfiles();
