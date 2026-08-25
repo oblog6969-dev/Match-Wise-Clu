@@ -1,13 +1,14 @@
 // Offline functional test for supabase/functions/assess/index.ts — the real
-// Gemini integration wired in after the Phase 1 stub. Runs the actual file
-// as a live local Deno HTTP server (no mocking of fetch — Deno.serve starts
-// a real listener, so testing via import is not viable) and exercises it
-// with real HTTP requests. Two server instances are used: one with no
-// GEMINI_API_KEY set (proves the missing-key fallback), one with a bogus
-// key (proves the function survives a genuine failed call to the real
-// Gemini API cleanly — this really does hit generativelanguage.googleapis.com
-// and gets a real "API key not valid" error, so it also incidentally proves
-// network/endpoint/request-shape reachability without spending any quota).
+// DeepSeek integration (switched from Gemini; see "MatchWise Vault/Decisions
+// Log.md"). Runs the actual file as a live local Deno HTTP server (no
+// mocking of fetch — Deno.serve starts a real listener, so testing via
+// import is not viable) and exercises it with real HTTP requests. Two
+// server instances are used: one with no DEEPSEEK_API_KEY set (proves the
+// missing-key fallback), one with a bogus key (proves the function survives
+// a genuine failed call to the real DeepSeek API cleanly — this really does
+// hit api.deepseek.com and gets a real "Authentication Fails" error, so it
+// also incidentally proves network/endpoint/request-shape reachability
+// without spending any quota).
 //
 // Requires the `deno` binary on PATH. Run: node tests/assess-edge-function.test.mjs
 "use strict";
@@ -97,8 +98,8 @@ async function main() {
   // unconditionally (no PORT override in the file), so run one server at a
   // time rather than in parallel.
 
-  await test("no GEMINI_API_KEY set: valid routing packet falls back to the empty-but-valid directive, HTTP 200", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+  await test("no DEEPSEEK_API_KEY set: valid routing packet falls back to the empty-but-valid directive, HTTP 200", async () => {
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const r = await post(8000, {
         sessionId: "t1", lang: "en", phase: "routing",
@@ -110,8 +111,8 @@ async function main() {
     } finally { await stopServer(proc); }
   });
 
-  await test("no GEMINI_API_KEY set: valid report_person packet falls back to empty card, HTTP 200", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+  await test("no DEEPSEEK_API_KEY set: valid report_person packet falls back to empty card, HTTP 200", async () => {
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const r = await post(8000, { sessionId: "t2", lang: "en", phase: "report_person" });
       assert.equal(r.status, 200);
@@ -119,8 +120,8 @@ async function main() {
     } finally { await stopServer(proc); }
   });
 
-  await test("no GEMINI_API_KEY set: valid report_couple packet falls back to empty, HTTP 200", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+  await test("no DEEPSEEK_API_KEY set: valid report_couple packet falls back to empty, HTTP 200", async () => {
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const r = await post(8000, { sessionId: "t3", lang: "en", phase: "report_couple" });
       assert.equal(r.status, 200);
@@ -128,8 +129,8 @@ async function main() {
     } finally { await stopServer(proc); }
   });
 
-  await test("bogus GEMINI_API_KEY: real (failing) Gemini call still degrades to the empty directive, HTTP 200 — proves the live call path and its fallback both work, without spending real quota", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "BOGUS_TEST_KEY_FOR_CI" });
+  await test("bogus DEEPSEEK_API_KEY: real (failing) DeepSeek call still degrades to the empty directive, HTTP 200 — proves the live call path and its fallback both work, without spending real quota", async () => {
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "BOGUS_TEST_KEY_FOR_CI" });
     try {
       const r = await post(8000, {
         sessionId: "t4", lang: "en", phase: "routing",
@@ -145,7 +146,7 @@ async function main() {
   });
 
   await test("malformed JSON body -> 400, not a crash", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const res = await fetch("http://localhost:8000/", { method: "POST", headers: { "content-type": "application/json" }, body: "{not json" });
       assert.equal(res.status, 400);
@@ -153,7 +154,7 @@ async function main() {
   });
 
   await test("unknown phase -> 400", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const r = await post(8000, { sessionId: "t5", phase: "bogus" });
       assert.equal(r.status, 400);
@@ -161,7 +162,7 @@ async function main() {
   });
 
   await test("21st call in the same session, same isolate, hits the documented 429 cutoff", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       let last = null;
       for (let i = 0; i < 21; i++) {
@@ -176,7 +177,7 @@ async function main() {
   });
 
   await test("untrusted Origin header -> 403; trusted Origin -> CORS header echoed", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "https://matchwise.example", GEMINI_API_KEY: "" });
+    const proc = await startServer({ ALLOWED_ORIGINS: "https://matchwise.example", DEEPSEEK_API_KEY: "" });
     try {
       const bad = await post(8000, { sessionId: "t6", phase: "routing" }, { origin: "https://evil.example" });
       assert.equal(bad.status, 403);
@@ -190,7 +191,7 @@ async function main() {
   });
 
   await test("oversized body -> 413", async () => {
-    const proc = await startServer({ ALLOWED_ORIGINS: "", GEMINI_API_KEY: "" });
+    const proc = await startServer({ ALLOWED_ORIGINS: "", DEEPSEEK_API_KEY: "" });
     try {
       const res = await fetch("http://localhost:8000/", {
         method: "POST", headers: { "content-type": "application/json" },

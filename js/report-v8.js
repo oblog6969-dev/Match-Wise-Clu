@@ -58,10 +58,16 @@ import { OPEN_TEXT_ITEMS } from "./questions-v8.js";
 import { postPacket } from "./ai-client-v8.js";
 import { cacheKeyFor, getCached, setCached } from "./ai-cache-v8.js";
 
-const REPORT_TIMEOUT_MS = 4000; // matches ai-session-v8.js's own TIMEOUT_MS / supabase/functions/assess/index.ts
-// (named distinctly from ai-session-v8.js's TIMEOUT_MS so the two module-
-// scoped constants don't collide once build-single.js concatenates every
-// module into one shared top-level scope for the offline single-file build)
+const REPORT_TIMEOUT_MS = 15000; // matches supabase/functions/assess/index.ts's REPORT_TIMEOUT_MS —
+// deliberately longer than routing's 4000ms (ai-session-v8.js's own
+// TIMEOUT_MS). Live-verified this session: the report model's internal
+// "thinking" tokens push real latency past 4s, and report calls never
+// block the UI thread (this whole call is fire-and-forget, cached on
+// success) and fire at most 3 times ever per couple — a longer wait here
+// is free. (Named distinctly from ai-session-v8.js's TIMEOUT_MS so the two
+// module-scoped constants don't collide once build-single.js concatenates
+// every module into one shared top-level scope for the offline single-file
+// build.)
 
 // ------------------------------------------------------------- text table --
 
