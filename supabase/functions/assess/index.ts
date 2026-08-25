@@ -1,8 +1,15 @@
 // MatchWise v8 — Insight Engine edge function.
 // -----------------------------------------------------------------------------
-// Calls Google's Gemini API (gemini-2.5-flash-lite for routing,
-// gemini-2.5-pro for report_person/report_couple — see "MatchWise Vault/
-// Decisions Log.md" for why Gemini over Anthropic, and why this model pair).
+// Calls DeepSeek's API (deepseek-v4-flash for routing, deepseek-v4-pro for
+// report_person/report_couple) — see "MatchWise Vault/Decisions Log.md" for
+// the full history: Anthropic → Gemini → DeepSeek. The Gemini integration
+// (gemini-flash-lite-latest / gemini-flash-latest) was live-verified working
+// for routing but report calls kept timing out even at a 15s budget on the
+// free tier; the user added a DeepSeek key and asked to switch entirely.
+// Every DeepSeek API detail below (endpoint, auth header, JSON-mode field,
+// the thinking-disable field, current model ids) was confirmed live against
+// DeepSeek's own docs this session, not guessed — see the comment by
+// DEEPSEEK_BASE/ROUTING_MODEL/REPORT_MODEL.
 // Validates the request shape, applies rate-limit/CORS/size gates, calls the
 // model with a JSON response schema, re-validates whatever comes back before
 // it ever leaves this function, and falls back to an empty-but-valid
@@ -29,24 +36,56 @@
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
   .split(",").map(s => s.trim()).filter(Boolean);
 
-// Set via `supabase secrets set GEMINI_API_KEY=...`. Get a key at
-// https://aistudio.google.com/apikey. If unset, every call falls back to
+// Set via `supabase secrets set DEEPSEEK_API_KEY=...`. Get a key at
+// https://platform.deepseek.com/api_keys. If unset, every call falls back to
 // the empty-but-valid directive below — the app behaves exactly as it did
 // under the Phase 1 stub (no crash, no visible difference to the user, the
 // Insight Engine just does nothing observable yet).
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
+// Every detail below confirmed live against DeepSeek's own docs this
+// session (https://api-docs.deepseek.com/api/create-chat-completion,
+// https://api-docs.deepseek.com/guides/json_mode/,
+// https://api-docs.deepseek.com/guides/reasoning_model,
+// https://api-docs.deepseek.com/quick_start/pricing), plus a live bogus-key
+// probe against the real endpoint (401 with a DeepSeek-specific
+// "Authentication Fails, Your api key: ****ogus is invalid" body — proves
+// the endpoint and Bearer-auth header are genuinely read, not guessed):
+//   - Endpoint: POST https://api.deepseek.com/chat/completions (OpenAI-
+//     compatible chat-completions shape: messages: [{role, content}]).
+//   - Auth: `Authorization: Bearer <key>` header.
+//   - JSON mode: `response_format: {type: "json_object"}` guarantees valid
+//     JSON but — unlike Gemini's responseSchema — enforces NO particular
+//     shape. Docs require the literal word "json" to appear in the
+//     system/user prompt plus a worked example of the desired shape, or the
+//     model may ignore the mode; this file's prompts do both. Docs also
+//     warn the API "may occasionally return empty content" in this mode —
+//     already covered by this function's existing null-on-any-failure
+//     fallback, no new handling needed.
+//   - Thinking: DeepSeek's v4 models think by default, and (same gotcha
+//     just hit with Gemini) reasoning tokens count against max_tokens.
+//     Disabled outright via `thinking: {type: "disabled"}` in the request
+//     body — confirmed live from the reasoning_model doc page's own
+//     worked example — rather than just padding max_tokens, since a
+//     disabled-thinking response is both faster and doesn't risk the same
+//     truncate-mid-JSON failure mode again.
+const DEEPSEEK_BASE = "https://api.deepseek.com/chat/completions";
 // Routing fires once per checkpoint (several times per quiz) — fast/cheap.
 // Report calls fire at most 3 times total per couple, ever, thanks to the
-// cache — worth the stronger model. See the user's confirmed choice in
-// "MatchWise Vault/Decisions Log.md".
-const ROUTING_MODEL = "gemini-2.5-flash-lite";
-const REPORT_MODEL = "gemini-2.5-pro";
+// cache — worth the stronger model.
+const ROUTING_MODEL = "deepseek-v4-flash";
+const REPORT_MODEL = "deepseek-v4-pro";
 
 const MAX_PACKET_BYTES = 24 * 1024;          // spec §7.5
 const MAX_CALLS_PER_SESSION = 20;            // spec §7.4
 const MAX_CALLS_PER_IP_PER_HOUR = 60;        // spec §7.4 — conservative first value, revisit with real usage
-const TIMEOUT_BUDGET_MS = 4000;              // matches the client's own budget (spec §4.2) — no point holding a connection open past what the client will use
+const TIMEOUT_BUDGET_MS = 4000;              // routing only — matches the client's own budget (spec §4.2). Routing fires on the UI thread's checkpoint path and must stay fast.
+// Report calls get a longer budget than routing, kept from the Gemini build
+// as a safety margin even though disabling thinking (above) should make
+// DeepSeek's real latency much lower — report calls are fire-and-forget
+// from the client's perspective (js/report-v8.js's own REPORT_TIMEOUT_MS,
+// kept in sync) and fire at most 3 times ever per couple, so extra headroom
+// here costs nothing the user notices.
+const REPORT_TIMEOUT_MS = 15000;
 
 const VALID_PHASES = new Set(["routing", "report_person", "report_couple"]);
 
@@ -212,7 +251,7 @@ function isValidReportCoupleDirective(d: any): boolean {
 }
 
 // Empty-but-schema-valid fallback. Returned whenever the real call can't
-// happen or can't be trusted — missing GEMINI_API_KEY, timeout, network
+// happen or can't be trusted — missing DEEPSEEK_API_KEY, timeout, network
 // error, malformed model output. This is deliberately identical to the
 // Phase 1 stub's old output, so "AI unavailable" degrades to exactly the
 // already-tested "AI off" behavior client-side (Phase 7 QA item 17).
@@ -285,187 +324,115 @@ const OPEN_TEXT_CATALOG: Array<{ id: string; cat: string }> = [
   { id: "ot_emotional_1", cat: "emotional" },
 ];
 
-// ------------------------------------------------------------- Gemini schema --
-// Google Gemini API, confirmed live against the API's own Discovery document
-// (https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta)
-// during this build, not guessed:
-//   - Schema.type values are UPPERCASE ("OBJECT"/"STRING"/"ARRAY"/...).
-//   - A restricted string value list needs BOTH format: "enum" AND an
-//     `enum: [...]` array — confirmed from the Discovery doc's own worked
-//     example for Schema.enum.
-//   - `responseSchema` is marked deprecated in the Discovery doc in favor of
-//     `responseJsonSchema`, but that replacement field's own doc string is
-//     self-referential/broken ("use responseJsonSchema rather than this
-//     field" — on the responseJsonSchema entry itself) and gives no usable
-//     spec. `responseSchema` is fully and unambiguously documented, so it's
-//     the field used here — flagging the deprecation notice rather than
-//     silently picking the undocumented one.
-//   - Auth: `x-goog-api-key` header, confirmed live this session (a bogus
-//     key via that header gets a distinct "API key not valid" error from a
-//     missing key's "unregistered caller" error — i.e. the header is
-//     genuinely read as an attempted key, not ignored).
+// --------------------------------------------------------- worked examples --
+// DeepSeek's response_format: {type:"json_object"} guarantees syntactically
+// valid JSON but enforces NO particular shape (unlike Gemini's
+// responseSchema, which is gone now). Per DeepSeek's own JSON-mode docs
+// (https://api-docs.deepseek.com/guides/json_mode/), reliably getting the
+// right SHAPE requires a worked example of the desired JSON embedded in the
+// prompt itself, plus the literal word "json" somewhere in the prompt. These
+// consts are that worked example for each phase — fed into the matching
+// system prompt below, not used as an API-level schema (DeepSeek has no such
+// field). Real validation still happens after the fact, unchanged, via
+// isValidRoutingDirective/isValidReportPersonDirective/
+// isValidReportCoupleDirective.
 
-const ROUTING_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    injectItems: { type: "ARRAY", items: { type: "STRING" } },
-    reorder: { type: "ARRAY", items: { type: "STRING" } },
-    pairResolutions: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          aId: { type: "STRING" },
-          bId: { type: "STRING" },
-          resolvedBy: { type: "STRING" },
-        },
-        required: ["aId", "bId", "resolvedBy"],
-      },
-    },
-    probesUsed: { type: "INTEGER" },
-  },
-  required: ["injectItems", "reorder", "pairResolutions", "probesUsed"],
+const ROUTING_EXAMPLE = {
+  injectItems: ["p_ctr_01"],
+  reorder: [],
+  pairResolutions: [{ aId: "an3", bId: "an6", resolvedBy: "p_ctr_01" }],
+  probesUsed: 1,
 };
 
-const REPORT_PERSON_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    card: {
-      type: "OBJECT",
-      properties: {
-        summary: { type: "STRING" },
-        consistency: { type: "STRING" },
-        mattersMost: { type: "ARRAY", items: { type: "STRING" } },
-      },
-      required: ["summary", "consistency", "mattersMost"],
-    },
-    openTextExtractions: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          itemId: { type: "STRING" },
-          signals: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                cat: { type: "STRING" },
-                direction: { type: "STRING", format: "enum", enum: ["high", "low"] },
-                strength: { type: "STRING", format: "enum", enum: ["weak", "moderate", "strong"] },
-                quote: { type: "STRING" },
-              },
-              required: ["cat", "direction", "strength", "quote"],
-            },
-          },
-        },
-        required: ["itemId", "signals"],
-      },
-    },
+const REPORT_PERSON_EXAMPLE = {
+  card: {
+    summary: "They tend to process things internally before sharing them, and value steadiness over spontaneity.",
+    consistency: "Their answers held up consistently across similar questions.",
+    mattersMost: ["Follow-through", "Emotional steadiness"],
   },
-  required: ["card", "openTextExtractions"],
+  openTextExtractions: [
+    {
+      itemId: "ot_conflict_1",
+      signals: [
+        { cat: "conflict", direction: "low", strength: "moderate", quote: "I usually need a bit of quiet before I can talk it through" },
+      ],
+    },
+  ],
 };
 
-const EVIDENCE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    itemId: { type: "STRING" },
-    who: { type: "STRING", format: "enum", enum: ["a", "b"] },
-    summary: { type: "STRING" },
-  },
-  required: ["itemId", "who", "summary"],
-};
-
-const REPORT_COUPLE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    insights: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          kind: { type: "STRING", format: "enum", enum: ["strength", "challenge"] },
-          title: { type: "STRING" },
-          text: { type: "STRING" },
-          evidence: { type: "ARRAY", items: EVIDENCE_SCHEMA },
-        },
-        required: ["kind", "title", "text", "evidence"],
-      },
+const REPORT_COUPLE_EXAMPLE = {
+  insights: [
+    {
+      kind: "strength",
+      title: "Shared steadiness around money",
+      text: "Both of you lean toward planning big purchases together rather than deciding alone, which lines up with how you each answered independently.",
+      evidence: [
+        { itemId: "m2", who: "a", summary: "chose the 'talk it through first' option" },
+        { itemId: "m2", who: "b", summary: "chose the same option" },
+      ],
     },
-    conversations: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          prompt: { type: "STRING" },
-          why: { type: "STRING" },
-          evidence: { type: "ARRAY", items: EVIDENCE_SCHEMA },
-        },
-        required: ["prompt", "why", "evidence"],
-      },
-    },
-    divergences: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          cat: { type: "STRING" },
-          text: { type: "STRING" },
-        },
-        required: ["cat", "text"],
-      },
-    },
-  },
-  required: ["insights", "conversations", "divergences"],
+  ],
+  conversations: [
+    { prompt: "How do you each want to handle a big unplanned expense?", why: "Your answers were close but not identical here.", evidence: [] },
+  ],
+  divergences: [
+    { cat: "family", text: "You have somewhat different comfort levels with extended family involvement — different, not wrong." },
+  ],
 };
 
 // --------------------------------------------------------------- transport --
 
 /**
- * One call to the Gemini API. Returns the parsed JSON object on success,
- * or null on ANY failure — missing key, non-2xx, timeout, network error,
- * unparseable body, or a body that isn't valid JSON once extracted. Callers
- * always have an empty-but-valid fallback ready; this function never throws.
+ * One call to the DeepSeek chat-completions API. Returns the parsed JSON
+ * object on success, or null on ANY failure — missing key, non-2xx, timeout,
+ * network error, unparseable body, or a body that isn't valid JSON once
+ * extracted. Callers always have an empty-but-valid fallback ready; this
+ * function never throws.
  */
-async function callGemini(
+async function callDeepSeek(
   model: string,
   systemInstruction: string,
   userPrompt: string,
-  schema: unknown,
-  maxOutputTokens: number,
+  maxTokens: number,
+  timeoutBudgetMs: number = TIMEOUT_BUDGET_MS,
 ): Promise<any | null> {
-  if (!GEMINI_API_KEY) return null;
+  if (!DEEPSEEK_API_KEY) return null;
 
   const controller = new AbortController();
-  // Leave headroom under the client's own 4000ms budget so a real timeout
-  // here still gets a chance to return {} before the client abandons the
-  // call itself — see js/ai-client-v8.js's own timeout for the client side
-  // of this same margin.
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_BUDGET_MS - 300);
+  // Leave headroom under the caller's own budget so a real timeout here
+  // still gets a chance to return {} before the client abandons the call
+  // itself — see js/ai-client-v8.js's/js/report-v8.js's own timeouts for
+  // the client side of this same margin.
+  const timer = setTimeout(() => controller.abort(), timeoutBudgetMs - 300);
 
   try {
-    const res = await fetch(`${GEMINI_BASE}/${model}:generateContent`, {
+    const res = await fetch(DEEPSEEK_BASE, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
+        "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-          temperature: 0.4,
-          maxOutputTokens,
-        },
+        model,
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        thinking: { type: "disabled" },
+        temperature: 0.4,
+        max_tokens: maxTokens,
       }),
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return null;
+    }
     const body = await res.json();
-    const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (typeof text !== "string") return null;
+    const text = body?.choices?.[0]?.message?.content;
+    if (typeof text !== "string") {
+      return null;
+    }
     try {
       return JSON.parse(text);
     } catch {
@@ -551,6 +518,10 @@ function buildRoutingSystemPrompt(): string {
     "Probe catalog (id / cat / kind / topic — kind 'contradiction' entries " +
       "also list which unresolvedPairs entry they target):",
     JSON.stringify(PROBE_CATALOG),
+    "Respond with ONLY a single json object, no other text, matching " +
+      "exactly this shape (a worked example — reuse its field names and " +
+      "types, not its values):",
+    JSON.stringify(ROUTING_EXAMPLE),
   ].join("\n\n");
 }
 
@@ -610,6 +581,10 @@ function buildPersonSystemPrompt(): string {
       "category. If an answer has nothing specific to extract, omit it " +
       "from openTextExtractions entirely (an empty array overall is fine " +
       "and expected when nothing stands out).",
+    "Respond with ONLY a single json object, no other text, matching " +
+      "exactly this shape (a worked example — reuse its field names and " +
+      "types, not its values):",
+    JSON.stringify(REPORT_PERSON_EXAMPLE),
   ].join("\n\n");
 }
 
@@ -676,6 +651,10 @@ function buildCoupleSystemPrompt(): string {
     "It is fine, and often correct, to return fewer entries than the " +
       "maximums above, or empty arrays for a section with nothing solid to " +
       "say. Do not pad with generic material to fill space.",
+    "Respond with ONLY a single json object, no other text, matching " +
+      "exactly this shape (a worked example — reuse its field names and " +
+      "types, not its values):",
+    JSON.stringify(REPORT_COUPLE_EXAMPLE),
   ].join("\n\n");
 }
 
@@ -699,14 +678,19 @@ function buildCoupleUserPrompt(packet: any): string {
 // ------------------------------------------------------------ model calls --
 
 function routeCheckpoint(packet: RoutingPacket): Promise<any | null> {
-  return callGemini(ROUTING_MODEL, buildRoutingSystemPrompt(), buildRoutingUserPrompt(packet), ROUTING_SCHEMA, 512);
+  return callDeepSeek(ROUTING_MODEL, buildRoutingSystemPrompt(), buildRoutingUserPrompt(packet), 512);
 }
 
+// max_tokens kept generous (carried over from the Gemini-era fix, which was
+// needed there because "thinking" tokens shared the same budget as visible
+// output). DeepSeek's thinking is disabled outright here (see
+// DEEPSEEK_BASE's comment), so this headroom is pure safety margin, not a
+// load-bearing fix — but no reason to shrink it back down.
 function generateReport(phase: "report_person" | "report_couple", packet: any): Promise<any | null> {
   if (phase === "report_person") {
-    return callGemini(REPORT_MODEL, buildPersonSystemPrompt(), buildPersonUserPrompt(packet), REPORT_PERSON_SCHEMA, 1536);
+    return callDeepSeek(REPORT_MODEL, buildPersonSystemPrompt(), buildPersonUserPrompt(packet), 4096, REPORT_TIMEOUT_MS);
   }
-  return callGemini(REPORT_MODEL, buildCoupleSystemPrompt(), buildCoupleUserPrompt(packet), REPORT_COUPLE_SCHEMA, 2560);
+  return callDeepSeek(REPORT_MODEL, buildCoupleSystemPrompt(), buildCoupleUserPrompt(packet), 6144, REPORT_TIMEOUT_MS);
 }
 
 // ------------------------------------------------------------------ main --
@@ -785,12 +769,15 @@ Deno.serve(async (req) => {
 
   // Log shape only — never packet content, never model output content.
   // `answered`/`openText`/etc. and the model's response are deliberately
-  // not referenced anywhere in this log line.
+  // not referenced anywhere in this log line. `hasDeepseekKey` is a boolean
+  // only (never the key itself) — useful for diagnosing "the call always
+  // falls back" without needing a way to read secret values back out.
   console.log(JSON.stringify({
     ts: new Date().toISOString(),
     phase: body.phase,
     status,
     latencyMs: Date.now() - started,
+    hasDeepseekKey: !!DEEPSEEK_API_KEY,
   }));
 
   return new Response(JSON.stringify(result), {
