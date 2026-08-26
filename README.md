@@ -2,7 +2,7 @@
 
 Private couple compatibility assessment. Mobile-friendly PWA, bilingual (English / Arabic), no backend — all answers stay on the device.
 
-**Live:** https://matchwise-clu-oblog6969-1103s-projects.vercel.app
+**Live:** https://matchwise-clu.vercel.app/
 
 ## Two ways to run it
 
